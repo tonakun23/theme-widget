@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Theme Widget</string>
+    <string name="widget_clock">Đồng hồ</string>
+    <string name="widget_calendar">Lịch</string>
+    <string name="widget_note">Ghi chú</string>
+    <string name="widget_battery">Pin</string>
+</resources>

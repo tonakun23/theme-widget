@@ -1,0 +1,11 @@
+[package]
+name = "theme-editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Trình chỉnh sửa theme: Command, undo/redo, phiên chỉnh sửa, kho theme (BR-04, BR-05, BR-10, BR-13, BR-23)"
+
+[dependencies]
+theme-core = { path = "../theme-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

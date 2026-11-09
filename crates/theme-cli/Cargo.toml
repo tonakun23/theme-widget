@@ -1,0 +1,15 @@
+[package]
+name = "theme-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI cho nhà thiết kế theme: validate, resolve, list-themes (F-24, Giai đoạn 1)"
+
+[[bin]]
+name = "theme-cli"
+path = "src/main.rs"
+
+[dependencies]
+theme-core = { path = "../theme-core" }
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"

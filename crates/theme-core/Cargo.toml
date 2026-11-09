@@ -1,0 +1,12 @@
+[package]
+name = "theme-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Lõi theme: mô hình design token, kiểm tra hợp lệ, gộp các lớp theme (BR-01..BR-24)"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = { version = "0.8", features = ["derive"] }
+thiserror = "2"

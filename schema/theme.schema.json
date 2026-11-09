@@ -1,0 +1,371 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Theme",
+  "type": "object",
+  "properties": {
+    "author": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dark": {
+      "description": "Biến thể Tối — thiếu thì engine tự sinh từ Sáng (BR-16).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Variant"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "extends": {
+      "description": "Theme cha (extends), tối đa 3 cấp, cấm vòng lặp (BR-09).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "id": {
+      "default": "default",
+      "type": "string"
+    },
+    "kind": {
+      "default": "built_in",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ThemeKind"
+        }
+      ]
+    },
+    "light": {
+      "description": "Biến thể Sáng — luôn có.",
+      "default": {
+        "background": {
+          "color": null,
+          "kind": null,
+          "opacity": null
+        },
+        "colors": {
+          "accent": null,
+          "background": null,
+          "border": null,
+          "follow_system": false,
+          "primary": null,
+          "surface": null,
+          "text_primary": null,
+          "text_secondary": null
+        },
+        "shape": {
+          "border_width": null,
+          "padding": null,
+          "radius": null
+        },
+        "typography": {
+          "body_bold": null,
+          "body_size": null,
+          "caption_size": null,
+          "title_bold": null,
+          "title_size": null
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/Variant"
+        }
+      ]
+    },
+    "name": {
+      "default": "Mặc định",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "version": {
+      "description": "Số lần sửa, tăng mỗi lần lưu (UC-02 bước 6).",
+      "default": 1,
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "definitions": {
+    "Background": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Màu nền khi kind = Solid.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "Loại nền: màu trơn / gradient / ảnh (gradient, ảnh ở V2).",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BgKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "opacity": {
+          "description": "Độ mờ nền, % (0–100, BR-07).",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        }
+      }
+    },
+    "BgKind": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "gradient",
+        "image"
+      ]
+    },
+    "Colors": {
+      "type": "object",
+      "properties": {
+        "accent": {
+          "description": "palette.accent",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "background": {
+          "description": "palette.background",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "border": {
+          "description": "border",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "follow_system": {
+          "description": "Cờ \"theo màu hệ thống\" (BR-17): chỉ token được đánh dấu mới lấy màu hệ thống khi gộp.",
+          "default": false,
+          "type": "boolean"
+        },
+        "primary": {
+          "description": "palette.primary",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surface": {
+          "description": "palette.surface",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text_primary": {
+          "description": "text.primary",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text_secondary": {
+          "description": "text.secondary",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Shape": {
+      "type": "object",
+      "properties": {
+        "border_width": {
+          "description": "Độ dày viền, dp (0–4, BR-07).",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "padding": {
+          "description": "Padding, dp (0–24, BR-07).",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "radius": {
+          "description": "Bo góc, dp (0–32, BR-07).",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        }
+      }
+    },
+    "ThemeKind": {
+      "oneOf": [
+        {
+          "description": "Theme đi kèm app, chỉ đọc (BR-04).",
+          "type": "string",
+          "enum": [
+            "built_in"
+          ]
+        },
+        {
+          "description": "Theme do người dùng tạo hoặc nhân bản.",
+          "type": "string",
+          "enum": [
+            "custom"
+          ]
+        },
+        {
+          "description": "Theme nhập từ gói file (BR-22).",
+          "type": "string",
+          "enum": [
+            "imported"
+          ]
+        }
+      ]
+    },
+    "Typography": {
+      "type": "object",
+      "properties": {
+        "body_bold": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "body_size": {
+          "description": "Cỡ chữ nội dung, sp.",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "caption_size": {
+          "description": "Cỡ chữ chú thích, sp.",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
+        "title_bold": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "title_size": {
+          "description": "Cỡ chữ tiêu đề, sp (10–40, BR-07).",
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        }
+      }
+    },
+    "Variant": {
+      "description": "Một biến thể (Sáng hoặc Tối) của theme. Mọi token đều tùy chọn: thiếu token thì lấy từ lớp dưới khi gộp (BA §8.1).",
+      "type": "object",
+      "properties": {
+        "background": {
+          "default": {
+            "color": null,
+            "kind": null,
+            "opacity": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Background"
+            }
+          ]
+        },
+        "colors": {
+          "default": {
+            "accent": null,
+            "background": null,
+            "border": null,
+            "follow_system": false,
+            "primary": null,
+            "surface": null,
+            "text_primary": null,
+            "text_secondary": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Colors"
+            }
+          ]
+        },
+        "shape": {
+          "default": {
+            "border_width": null,
+            "padding": null,
+            "radius": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Shape"
+            }
+          ]
+        },
+        "typography": {
+          "default": {
+            "body_bold": null,
+            "body_size": null,
+            "caption_size": null,
+            "title_bold": null,
+            "title_size": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Typography"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

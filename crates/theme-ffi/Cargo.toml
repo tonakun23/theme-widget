@@ -1,0 +1,15 @@
+[package]
+name = "theme-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Cầu nối Rust <-> Kotlin: API public qua UniFFI (Giai đoạn 2 sẽ sinh binding Kotlin), C ABI an toàn với catch_unwind"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+theme-core = { path = "../theme-core" }
+serde_json = "1"
+thiserror = "2"
+uniffi = "0.29"

@@ -1,0 +1,7 @@
+/target/
+*.so
+android/app/build/
+android/.gradle/
+android/local.properties
+**/*.iml
+.DS_Store
