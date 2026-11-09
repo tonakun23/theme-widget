@@ -119,20 +119,29 @@ bằng Gradle trên máy có SDK.
 | Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Mô hình theme, kiểm tra, gộp theme, CLI. Chưa đụng Android. | ✅ Xong (repo này) |
-| 2 | FFI, sinh binding Kotlin, 1 widget mẫu dùng 2–3 theme có sẵn; build `.so` Android + APK đầu tiên. | Cần JDK + Android SDK + NDK |
+| 2 | FFI, sinh binding Kotlin, 1 widget mẫu dùng 2–3 theme có sẵn; build `.so` Android + APK đầu tiên. | Đang làm (trực tiếp từng bước nhỏ, 09/11/2026) |
 | 3 | Màn hình chỉnh sửa (SC-05), undo/redo, xem trước live, lưu riêng từng widget. | Chưa làm |
 | 4 | Material You thật, chế độ sáng/tối, nền do Rust vẽ (tiny-skia). | Chưa làm |
 | 5 | Gói theme, nhập/xuất, chia sẻ (BR-20..BR-22). | Chưa làm |
 
-## Câu hỏi mở (cần Tony chốt trước Giai đoạn 2)
+## Quyết định đã chốt (09/11/2026, Tony trả lời)
 
-- Tên repo GitHub trống để push code này lên (Tony tự tạo repo rồi báo tên;
-  token hiện tại không có quyền tạo repo, push từng 403 Contents).
-- Mô hình kiếm tiền: miễn phí hoàn toàn, mua một lần, hay miễn phí kèm
-  theme trả phí?
-- Danh sách loại widget chính thức của V1 và kích thước từng loại?
-- Có làm chế độ Cơ bản / Nâng cao ngay từ V1 không?
-- Phiên bản Android tối thiểu: 8.0 hay 10?
-- V1 có thu thập thống kê không (ảnh hưởng quyền Internet và chính sách
-  riêng tư)?
-- Tên app, biểu tượng và bộ theme có sẵn do ai thiết kế?
+1. **Mô hình kiếm tiền: miễn phí kèm theme trả phí** (freemium). Theme
+   trả phí hiển thị trạng thái Khóa trong thư viện; mua theme là V2,
+   V1 chưa làm thanh toán thật — chỉ làm cấu trúc `tier: free|paid`
+   trong mô hình theme.
+2. **Widget V1: đúng 4 loại — đồng hồ, lịch, ghi chú, pin.** Không thêm
+   loại khác ở V1.
+3. **Trình chỉnh sửa Nâng cao ngay từ V1.** Không làm chế độ Cơ bản;
+   editor mặc định đầy đủ 4 tab Màu / Chữ / Hình khối / Nền.
+4. **Android tối thiểu: API 26 / Android 8.0.** Đây là mức thấp nhất mà
+   Glance + các tính năng widget trong BA hỗ trợ (minSdk = 26).
+   Material You chỉ có từ API 31 (Android 12+).
+5. **Có thu thập thống kê.** Mặc định TẮT, người dùng bật trong Cài đặt
+   (SC-08) mới thu; chỉ thu các sự kiện đã định trong BA
+   (`widget_added`, `theme_applied`, `editor_opened`/`editor_closed`,
+   `contrast_warning`, `theme_deleted`, `error_shown`), không dữ liệu
+   cá nhân, không định danh. Quyền Internet chỉ bật khi người dùng đồng
+   ý thống kê (NFR-09).
+6. **Tên app, biểu tượng và bộ theme có sẵn do Muse thiết kế.**
+   Tên app giữ là "Theme Widget"; 10 theme có sẵn giữ nguyên tên.
