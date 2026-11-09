@@ -3,6 +3,11 @@ name = "uniffi-gen"
 version = "0.1.0"
 edition = "2021"
 
+# Tool sinh binding dung doc lap, khong phai thanh vien workspace:
+# khong co bang nay, cargo tu choi chay no khi nam trong workspace
+# (loi "believes it's in a workspace when it's not", run CI 42631809827).
+[workspace]
+
 [dependencies]
 uniffi_bindgen = "=0.29.5"
 camino = "1"
