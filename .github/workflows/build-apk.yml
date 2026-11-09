@@ -1,0 +1,97 @@
+# Build APK debug trên GitHub Actions.
+#
+# Vì sao có file này: build Gradle trên máy dev (VM) bị kẹt vì mọi kết nối
+# TCP do tiến trình Java mở đều bị chặn — Gradle client không nói chuyện
+# được với daemon của nó qua localhost ("Could not receive a message from
+# the daemon"), dù daemon vẫn sống. Mỗi lần chạy Gradle lại đổi cổng
+# localhost nên duyệt quyền từng cổng không giải quyết dứt điểm.
+# Trên runner GitHub không có chặn này nên build chạy thẳng được.
+# Chạy thủ công: repo GitHub → tab Actions → "Build APK (debug)" → Run workflow.
+# APK debug (tự ký bằng debug keystore, cài trực tiếp được) nằm ở Artifacts.
+name: Build APK (debug)
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Khớp đúng toolchain đã kiểm chứng trên máy dev (README mục Giai đoạn 2).
+      RUST_TOOLCHAIN: "1.99.1"
+      NDK_VERSION: "26.3.11579264"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        # Runner ubuntu-latest đã có sẵn sdkmanager trên PATH; cài đúng
+        # platform/build-tools/NDK mà app cần (compileSdk 34, NDK r26d).
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;${NDK_VERSION}"
+          yes | sdkmanager --licenses
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Install cargo-ndk
+        # Khớp bản đã dùng trên máy dev: cargo-ndk 4.1.2.
+        run: cargo install cargo-ndk --version 4.1.2
+
+      - name: Run Rust tests
+        run: cargo test
+
+      - name: Build Android .so libraries
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+        run: |
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 \
+            -o android/app/src/main/jniLibs build --release -p theme-ffi
+
+      - name: Regenerate UniFFI Kotlin bindings
+        # uniffi_bindgen 0.29.5 không có binary CLI nên dùng tool sinh nhỏ
+        # trong repo (xem README mục "Để build APK"). File .so aarch64 là
+        # đầu vào; binding sinh ra ghi đè theme_ffi.kt đã commit.
+        run: |
+          cargo run --release --manifest-path tools/uniffi-gen/Cargo.toml -- \
+            target/aarch64-linux-android/release/libtheme_ffi.so android/app/src/main/java
+
+      - name: Install Gradle 8.7
+        # Repo không có gradlew nên tải đúng bản Gradle đã dùng trên máy dev.
+        run: |
+          curl -L -o gradle-8.7-bin.zip https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          unzip -q gradle-8.7-bin.zip
+
+      - name: Build debug APK
+        run: ./gradle-8.7/bin/gradle -p android assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-widget-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
