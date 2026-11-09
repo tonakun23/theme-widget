@@ -149,10 +149,25 @@ vì máy ít RAM trống (daemon 2 GB bị kill khi bắt đầu build).
 | Giai đoạn | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Mô hình theme, kiểm tra, gộp theme, CLI. Chưa đụng Android. | ✅ Xong (repo này) |
-| 2 | FFI, sinh binding Kotlin, 1 widget mẫu dùng 2–3 theme có sẵn; build `.so` Android + APK đầu tiên. | Đang làm (trực tiếp từng bước nhỏ, 09/11/2026) |
-| 3 | Màn hình chỉnh sửa (SC-05), undo/redo, xem trước live, lưu riêng từng widget. | Chưa làm |
+| 2 | FFI, sinh binding Kotlin, 1 widget mẫu dùng 2–3 theme có sẵn; build `.so` Android + APK đầu tiên. | ✅ Xong — APK đầu tiên build bằng CI (run 42634197034, 09/11/2026) |
+| 3 | Màn hình chỉnh sửa (SC-05), undo/redo, xem trước live, lưu riêng từng widget. | Đang làm (bắt đầu 09/11/2026, trực tiếp từng bước nhỏ) |
 | 4 | Material You thật, chế độ sáng/tối, nền do Rust vẽ (tiny-skia). | Chưa làm |
 | 5 | Gói theme, nhập/xuất, chia sẻ (BR-20..BR-22). | Chưa làm |
+
+## Giai đoạn 3 — kế hoạch + tiến độ (bắt đầu 09/11/2026)
+
+Màn hình chỉnh sửa thật + ảnh nền riêng từng widget (Tony chốt 22:11
+09/11: ảnh nền chọn lúc thêm widget, không gắn theo theme). Làm trực
+tiếp từng bước nhỏ, mỗi bước kiểm chứng bằng CI (Gradle local vẫn kẹt
+quyền Java TCP — xem mục Giai đoạn 2).
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Nền tảng ảnh nền riêng từng widget: lưu ảnh theo appWidgetId, vẽ bitmap lên widget (RemoteViews). | Đang làm |
+| 2 | Trạng thái editor Kotlin: undo/redo (snapshot JSON), nháp, dùng FFI resolve/validate có sẵn. | Chưa làm |
+| 3 | SC-05 editor thật: xem trước live + 4 tab Màu/Chữ/Hình khối/Nền (tab Nền có chọn ảnh) + cảnh báo tương phản + lưu (BR-04/BR-12). | Chưa làm |
+| 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | Chưa làm |
+| 5 | APK mới qua CI + Tony test trên máy thật. | Chưa làm |
 
 ## Quyết định đã chốt (09/11/2026, Tony trả lời)
 

@@ -49,8 +49,18 @@ object ThemeApplier {
         Color.parseColor("#FFFFFF")
     }
 
-    /** Áp theme lên RemoteViews của một widget. Trả về RemoteViews đã tô màu. */
-    fun apply(layoutRes: Int, theme: ResolvedTheme, packageName: String): RemoteViews {
+    /**
+     * Áp theme lên RemoteViews của một widget. Trả về RemoteViews đã tô màu.
+     * [backgroundBitmap]: ảnh nền riêng của widget (Giai đoạn 3) — có thì
+     * vẽ ảnh (centerCrop trong layout) và nền màu thành trong suốt; không
+     * có thì tô màu nền như trước và ẩn ImageView.
+     */
+    fun apply(
+        layoutRes: Int,
+        theme: ResolvedTheme,
+        packageName: String,
+        backgroundBitmap: android.graphics.Bitmap? = null,
+    ): RemoteViews {
         val views = RemoteViews(packageName, layoutRes)
         val bg = parse(theme.background)
         val text = parse(theme.textPrimary)
@@ -60,7 +70,14 @@ object ThemeApplier {
         // Nền: RemoteViews không tô màu nền động trực tiếp cho mọi view,
         // nên dùng setInt với "setBackgroundColor" trên root (API 31+ mới
         // bo góc động được; máy cũ dùng drawable theo bậc — TODO Giai đoạn 4).
-        views.setInt(R.id.widget_root, "setBackgroundColor", bg)
+        if (backgroundBitmap != null) {
+            views.setImageViewBitmap(R.id.widget_background, backgroundBitmap)
+            views.setViewVisibility(R.id.widget_background, android.view.View.VISIBLE)
+            views.setInt(R.id.widget_root, "setBackgroundColor", 0)
+        } else {
+            views.setViewVisibility(R.id.widget_background, android.view.View.GONE)
+            views.setInt(R.id.widget_root, "setBackgroundColor", bg)
+        }
         views.setTextColor(R.id.widget_title, text)
         views.setTextColor(R.id.widget_body, secondary)
         views.setTextColor(R.id.widget_accent, primary)

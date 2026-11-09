@@ -26,8 +26,13 @@ object WidgetUpdater {
         layoutRes: Int,
     ) {
         val theme = resolveForWidget(context, appWidgetId) ?: defaultTheme()
+        // Ảnh nền riêng từng widget (Giai đoạn 3): đã thu nhỏ lúc lưu nên
+        // đọc nhanh; lỗi thì null -> rơi về nền màu, widget không vỡ.
+        val backgroundBitmap = runCatching {
+            com.widgettheme.store.BackgroundImageStore.load(context, appWidgetId)
+        }.getOrNull()
         val views: RemoteViews =
-            ThemeApplier.apply(layoutRes, theme, context.packageName)
+            ThemeApplier.apply(layoutRes, theme, context.packageName, backgroundBitmap)
         runCatching {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }.onFailure {

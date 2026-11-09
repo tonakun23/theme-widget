@@ -54,5 +54,7 @@ object WidgetThemeStore {
             it.remove(themeKey(appWidgetId))
             it.remove(overrideKey(appWidgetId))
         }
+        // BR-18: gỡ widget thì xóa luôn ảnh nền riêng của nó.
+        BackgroundImageStore.delete(context, appWidgetId)
     }
 }
