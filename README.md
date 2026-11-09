@@ -163,8 +163,8 @@ quyền Java TCP — xem mục Giai đoạn 2).
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Nền tảng ảnh nền riêng từng widget: lưu ảnh theo appWidgetId, vẽ bitmap lên widget (RemoteViews). | Đang làm |
-| 2 | Trạng thái editor Kotlin: undo/redo (snapshot JSON), nháp, dùng FFI resolve/validate có sẵn. | Chưa làm |
+| 1 | Nền tảng ảnh nền riêng từng widget: lưu ảnh theo appWidgetId, vẽ bitmap lên widget (RemoteViews). | ✅ Xong — CI run 42645086578 xanh, APK 16.431.395 byte |
+| 2 | Trạng thái editor Kotlin: undo/redo (snapshot JSON), nháp, dùng FFI resolve/validate có sẵn. | Đang làm |
 | 3 | SC-05 editor thật: xem trước live + 4 tab Màu/Chữ/Hình khối/Nền (tab Nền có chọn ảnh) + cảnh báo tương phản + lưu (BR-04/BR-12). | Chưa làm |
 | 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | Chưa làm |
 | 5 | APK mới qua CI + Tony test trên máy thật. | Chưa làm |
