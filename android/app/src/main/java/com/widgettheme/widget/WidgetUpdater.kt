@@ -19,6 +19,25 @@ import kotlinx.coroutines.runBlocking
  */
 object WidgetUpdater {
 
+    /** Cập nhật widget theo loại lấy từ AppWidgetInfo (dùng khi editor không biết layout). */
+    fun updateWidgetByProvider(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+    ) {
+        val provider = runCatching {
+            appWidgetManager.getAppWidgetInfo(appWidgetId)?.provider?.className
+        }.getOrNull() ?: return
+        val layoutRes = when {
+            provider.contains("Clock") -> R.layout.widget_clock
+            provider.contains("Calendar") -> R.layout.widget_calendar
+            provider.contains("Note") -> R.layout.widget_note
+            provider.contains("Battery") -> R.layout.widget_battery
+            else -> return
+        }
+        updateWidget(context, appWidgetManager, appWidgetId, layoutRes)
+    }
+
     fun updateWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -47,18 +66,19 @@ object WidgetUpdater {
         appWidgetId: Int,
     ): ThemeApplier.ResolvedTheme? = runCatching {
         val themeId = runBlocking { WidgetThemeStore.getThemeId(context, appWidgetId) }
-        val themeJson = loadThemeJson(context, themeId) ?: return null
+        val themeJson = loadThemeJson(context, appWidgetId, themeId) ?: return null
         val dark = isNightMode(context)
         ThemeEngine.resolve(themeJson, dark)
     }.getOrNull()
 
-    /** JSON theme có sẵn trong assets/themes/<id>.json (đóng gói theo app). */
-    private fun loadThemeJson(context: Context, themeId: String): String? {
+    /**
+     * JSON theme của widget: ghi đè riêng (BR-12) thắng trước, rồi theme
+     * người dùng trong filesDir, rồi theme có sẵn trong assets.
+     */
+    private fun loadThemeJson(context: Context, appWidgetId: Int, themeId: String): String? {
+        runBlocking { WidgetThemeStore.getOverrideJson(context, appWidgetId) }?.let { return it }
         for (id in listOf(themeId, "default")) {
-            val json = runCatching {
-                context.assets.open("themes/$id.json").bufferedReader().use { it.readText() }
-            }.getOrNull()
-            if (json != null) return json
+            com.widgettheme.store.ThemeRepository.loadThemeJson(context, id)?.let { return it }
         }
         return null
     }

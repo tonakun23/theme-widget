@@ -3,42 +3,51 @@ package com.widgettheme.editor
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import com.widgettheme.store.BackgroundImageStore
+import com.widgettheme.store.ThemeRepository
+import com.widgettheme.store.WidgetThemeStore
+import com.widgettheme.widget.WidgetUpdater
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
- * ThemeEditorActivity — Trình chỉnh sửa theme SC-05 (khung Giai đoạn 1).
+ * ThemeEditorActivity — Trình chỉnh sửa theme SC-05 (Giai đoạn 3).
  *
- * Yêu cầu chi tiết (BA §9, SC-05):
- * - Ảnh xem trước chiếm ~40% chiều cao, luôn hiển thị khi cuộn; nút đổi
- *   kích thước Nhỏ/Vừa/Lớn và Sáng/Tối.
- * - 4 tab: Màu / Chữ / Hình khối / Nền. Tab Màu: bảng màu, ô nhập HEX,
- *   màu gợi ý từ hình nền, công tắc "Theo màu hệ thống".
- * - Cảnh báo tương phản (W-01) thành dải màu dưới ảnh xem trước + nút
- *   "Sửa nhanh" để engine đề xuất màu chữ đạt chuẩn.
- * - Khi chỉnh riêng cho một widget: tiêu đề ghi "Chỉ áp cho widget này",
- *   token bị ghi đè có dấu chấm bên cạnh.
- * - Mỗi lần đổi giá trị: gọi engine.apply(command) qua UniFFI, nhận lại
- *   theme đã gộp để vẽ lại xem trước (mục tiêu ≤ 100 ms, NFR-01).
- * - Lưu: Rust ghi file theme an toàn (tempfile + rename); Kotlin ghi
- *   liên kết appWidgetId -> themeId vào DataStore; trả RESULT_OK cho
- *   launcher khi mở từ màn hình cấu hình (UC-01).
- *
- * Giai đoạn 1 chỉ có khung Compose + luồng trả kết quả cấu hình.
- * Giai đoạn 3: làm đủ 4 tab + xem trước live + undo/redo + W-01/W-02.
+ * - Ảnh xem trước ~40% chiều cao, luôn hiển thị khi cuộn; đổi kích thước
+ *   Nhỏ/Vừa/Lớn và Sáng/Tối (xem [EditorScreen]).
+ * - 4 tab: Màu / Chữ / Hình khối / Nền; cảnh báo tương phản (W-01) + nút
+ *   "Sửa nhanh"; undo/redo 50 bước; nháp tự lưu, hết hạn 7 ngày (BR-13).
+ * - Mở từ màn hình cấu hình (UC-01, có appWidgetId) = chỉnh riêng cho
+ *   widget đó: lưu thành ghi đè riêng (BR-12), tiêu đề "Chỉ áp cho widget
+ *   này". Mở từ thư viện (không có widget) = sửa theme: theme có sẵn được
+ *   nhân bản (BR-04), theme người dùng ghi đè trực tiếp.
+ * - Hủy (BR-02): widget vẫn dùng theme Mặc định, trả RESULT_CANCELED.
+ * - Lưu: ghi file theme an toàn (temp + rename), ghi liên kết
+ *   appWidgetId -> themeId vào DataStore, cập nhật widget, RESULT_OK.
  */
 class ThemeEditorActivity : ComponentActivity() {
 
     private var appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+    private lateinit var state: EditorState
+    private var themeName: String = "Theme"
+    private var backgroundBitmap: Bitmap? by mutableStateOf(null)
+
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null || appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return@registerForActivityResult
+        if (BackgroundImageStore.save(this, appWidgetId, uri)) {
+            backgroundBitmap = BackgroundImageStore.load(this, appWidgetId)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,45 +56,103 @@ class ThemeEditorActivity : ComponentActivity() {
             AppWidgetManager.INVALID_APPWIDGET_ID,
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
-        // Mở từ màn hình cấu hình thì mặc định hủy (BR-02: widget vẫn dùng
-        // theme Mặc định, không hủy widget — xem onBackPressed / nút Bỏ qua).
-        val result = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        setResult(Activity.RESULT_CANCELED, result)
+        // Mở từ màn hình cấu hình thì mặc định hủy (BR-02).
+        val cancelResult = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        setResult(Activity.RESULT_CANCELED, cancelResult)
+
+        val initialJson = loadInitialJson()
+        themeName = ThemeRepository.themeName(initialJson)
+        val isPerWidget = appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
+        state = EditorState(
+            initialJson = initialJson,
+            dark = false,
+            appWidgetId = appWidgetId,
+            isPerWidget = isPerWidget,
+        )
+        if (isPerWidget) {
+            backgroundBitmap = BackgroundImageStore.load(this, appWidgetId)
+        }
 
         setContent {
             MaterialTheme {
                 EditorScreen(
-                    appWidgetId = appWidgetId,
-                    onApply = {
-                        // TODO Giai đoạn 3: lưu theme qua Rust, ghi DataStore,
-                        // cập nhật widget, trả RESULT_OK.
-                        val done = Intent().putExtra(
-                            AppWidgetManager.EXTRA_APPWIDGET_ID,
-                            appWidgetId,
-                        )
-                        setResult(Activity.RESULT_OK, done)
-                        finish()
+                    state = state,
+                    themeName = themeName,
+                    backgroundBitmap = backgroundBitmap,
+                    onPickImage = { pickImage.launch("image/*") },
+                    onRemoveImage = {
+                        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                            BackgroundImageStore.delete(this, appWidgetId)
+                            backgroundBitmap = null
+                        }
                     },
+                    onSave = { saveAndFinish() },
+                    onCancel = { finish() },
                 )
             }
         }
     }
-}
 
-@Composable
-private fun EditorScreen(appWidgetId: Int, onApply: () -> Unit) {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = "Chỉnh sửa theme",
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = "Khung Giai đoạn 1 — 4 tab Màu/Chữ/Hình khối/Nền và xem trước " +
-                "live sẽ làm ở Giai đoạn 3. Widget: $appWidgetId",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Button(onClick = onApply) {
-            Text("Áp dụng")
+    override fun onPause() {
+        super.onPause()
+        // Tự lưu nháp khi rời màn hình (BR-13).
+        if (::state.isInitialized && state.hasUnsavedChanges) {
+            state.saveDraft(this)
         }
+    }
+
+    /** Nháp còn hạn thắng trước, rồi theme của widget, rồi theme Mặc định. */
+    private fun loadInitialJson(): String {
+        EditorState.loadDraft(this, appWidgetId)?.let { return it }
+        val themeId = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            runBlocking { WidgetThemeStore.getThemeId(this@ThemeEditorActivity, appWidgetId) }
+        } else {
+            "default"
+        }
+        return ThemeRepository.loadThemeJson(this, themeId)
+            ?: ThemeRepository.loadThemeJson(this, "default")
+            ?: FALLBACK_THEME_JSON
+    }
+
+    private fun saveAndFinish() {
+        lifecycleScope.launch {
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                // Chỉnh riêng cho widget: lưu toàn bộ JSON đã sửa làm ghi đè (BR-12).
+                WidgetThemeStore.setOverrideJson(
+                    this@ThemeEditorActivity,
+                    appWidgetId,
+                    state.currentJson,
+                )
+                WidgetUpdater.updateWidgetByProvider(
+                    this@ThemeEditorActivity,
+                    AppWidgetManager.getInstance(this@ThemeEditorActivity),
+                    appWidgetId,
+                )
+            } else {
+                // Sửa trong thư viện: theme có sẵn thì nhân bản (BR-04).
+                if (ThemeRepository.isBuiltIn(state.currentJson)) {
+                    val (newId, newJson) = ThemeRepository.cloneBuiltIn(
+                        this@ThemeEditorActivity,
+                        state.currentJson,
+                    )
+                    ThemeRepository.saveUserTheme(this@ThemeEditorActivity, newId, newJson)
+                } else {
+                    ThemeRepository.saveUserTheme(
+                        this@ThemeEditorActivity,
+                        ThemeRepository.themeId(state.currentJson),
+                        state.currentJson,
+                    )
+                }
+            }
+            state.clearDraft(this@ThemeEditorActivity)
+            val done = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            setResult(Activity.RESULT_OK, done)
+            finish()
+        }
+    }
+
+    companion object {
+        /** Dự phòng khi assets thiếu theme Mặc định (không nên xảy ra). */
+        const val FALLBACK_THEME_JSON = """{"id":"default","kind":"built_in","name":"Mặc định","schema_version":1,"version":1,"light":{"background":{"color":"#FFFFFF","kind":"solid","opacity":100},"colors":{"accent":"#FF8A00","background":"#FFFFFF","border":"#E5E7EB","follow_system":false,"primary":"#3366FF","surface":"#F2F2F7","text_primary":"#1A1A1A","text_secondary":"#6B7280"},"shape":{"border_width":1,"padding":12,"radius":16},"typography":{"body_bold":false,"body_size":14,"caption_size":12,"title_bold":true,"title_size":20}},"dark":{"background":{"color":"#121212","kind":"solid","opacity":100},"colors":{"accent":"#FFB25E","background":"#121212","border":"#2E2E2E","follow_system":false,"primary":"#7AA2FF","surface":"#1E1E1E","text_primary":"#F5F5F5","text_secondary":"#A1A1AA"},"shape":{"border_width":1,"padding":12,"radius":16},"typography":{"body_bold":false,"body_size":14,"caption_size":12,"title_bold":true,"title_size":20}}}"""
     }
 }
