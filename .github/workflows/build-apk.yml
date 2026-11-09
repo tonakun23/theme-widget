@@ -36,6 +36,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # packages mặc định của action là "tools platform-tools" nhưng gói
+          # "tools" (SDK Tools cũ) đã bị Google bỏ khỏi kho nên sdkmanager
+          # báo "Failed to find package 'tools'" và exit 1 (run 42631266068).
+          packages: platform-tools
 
       - name: Install Android SDK packages
         # Runner ubuntu-latest đã có sẵn sdkmanager trên PATH; cài đúng
