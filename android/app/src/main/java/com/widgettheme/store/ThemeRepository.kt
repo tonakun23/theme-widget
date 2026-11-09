@@ -53,6 +53,39 @@ object ThemeRepository {
         JSONObject(themeJson).optString("id", "default")
     }.getOrDefault("default")
 
+/** Một theme trong thư viện (SC-03). */
+data class ThemeInfo(val id: String, val name: String, val kind: String, val json: String)
+
+    /**
+     * Liệt kê mọi theme: theme người dùng (filesDir) thắng theme có sẵn
+     * (assets) khi trùng id; sắp xếp có sẵn trước, người dùng sau.
+     */
+    fun listThemes(context: Context): List<ThemeInfo> {
+        val byId = linkedMapOf<String, ThemeInfo>()
+        runCatching {
+            context.assets.list("themes").orEmpty()
+                .filter { it.endsWith(".json") }
+                .forEach { file ->
+                    val id = file.removeSuffix(".json")
+                    loadThemeJson(context, id)?.let { json ->
+                        byId[id] = ThemeInfo(id, themeName(json), "built_in", json)
+                    }
+                }
+        }
+        runCatching {
+            File(context.filesDir, DIR).listFiles()
+                .orEmpty()
+                .filter { it.name.endsWith(".json") }
+                .forEach { f ->
+                    val id = f.name.removeSuffix(".json")
+                    runCatching { f.readText() }.getOrNull()?.let { json ->
+                        byId[id] = ThemeInfo(id, themeName(json), "custom", json)
+                    }
+                }
+        }
+        return byId.values.sortedWith(compareBy({ it.kind != "built_in" }, { it.name }))
+    }
+
     /**
      * Nhân bản theme có sẵn (BR-04): id mới duy nhất, tên "<tên> (bản của tôi)",
      * kind thành "custom". Trả về (id mới, JSON mới).

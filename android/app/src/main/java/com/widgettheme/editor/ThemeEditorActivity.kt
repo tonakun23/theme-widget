@@ -38,9 +38,10 @@ import kotlinx.coroutines.runBlocking
 class ThemeEditorActivity : ComponentActivity() {
 
     private var appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
-    private lateinit var state: EditorState
-    private var themeName: String = "Theme"
+    private var editorState by mutableStateOf<EditorState?>(null)
+    private var themeName by mutableStateOf("Theme")
     private var backgroundBitmap: Bitmap? by mutableStateOf(null)
+    private var themes by mutableStateOf<List<com.widgettheme.store.ThemeInfo>>(emptyList())
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri == null || appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return@registerForActivityResult
@@ -63,22 +64,36 @@ class ThemeEditorActivity : ComponentActivity() {
         val initialJson = loadInitialJson()
         themeName = ThemeRepository.themeName(initialJson)
         val isPerWidget = appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
-        state = EditorState(
+        editorState = EditorState(
             initialJson = initialJson,
             dark = false,
             appWidgetId = appWidgetId,
             isPerWidget = isPerWidget,
         )
+        themes = ThemeRepository.listThemes(this)
         if (isPerWidget) {
             backgroundBitmap = BackgroundImageStore.load(this, appWidgetId)
         }
 
         setContent {
             MaterialTheme {
+                val state = editorState ?: return@MaterialTheme
                 EditorScreen(
                     state = state,
                     themeName = themeName,
+                    themes = themes,
                     backgroundBitmap = backgroundBitmap,
+                    onSelectTheme = { info ->
+                        // Đổi theme trong lúc cấu hình (UC-01): nạp JSON mới,
+                        // giữ nguyên biến thể Sáng/Tối + ảnh nền riêng của widget.
+                        editorState = EditorState(
+                            initialJson = info.json,
+                            dark = state.dark,
+                            appWidgetId = appWidgetId,
+                            isPerWidget = isPerWidget,
+                        )
+                        themeName = info.name
+                    },
                     onPickImage = { pickImage.launch("image/*") },
                     onRemoveImage = {
                         if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
@@ -96,18 +111,16 @@ class ThemeEditorActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         // Tự lưu nháp khi rời màn hình (BR-13).
-        if (::state.isInitialized && state.hasUnsavedChanges) {
-            state.saveDraft(this)
-        }
+        editorState?.let { if (it.hasUnsavedChanges) it.saveDraft(this) }
     }
 
-    /** Nháp còn hạn thắng trước, rồi theme của widget, rồi theme Mặc định. */
+    /** Nháp còn hạn thắng trước, rồi theme của widget (hoặc theme_id được mở), rồi theme Mặc định. */
     private fun loadInitialJson(): String {
         EditorState.loadDraft(this, appWidgetId)?.let { return it }
         val themeId = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
             runBlocking { WidgetThemeStore.getThemeId(this@ThemeEditorActivity, appWidgetId) }
         } else {
-            "default"
+            intent.getStringExtra(EXTRA_THEME_ID) ?: "default"
         }
         return ThemeRepository.loadThemeJson(this, themeId)
             ?: ThemeRepository.loadThemeJson(this, "default")
@@ -115,6 +128,7 @@ class ThemeEditorActivity : ComponentActivity() {
     }
 
     private fun saveAndFinish() {
+        val state = editorState ?: return
         lifecycleScope.launch {
             if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 // Chỉnh riêng cho widget: lưu toàn bộ JSON đã sửa làm ghi đè (BR-12).
@@ -152,6 +166,8 @@ class ThemeEditorActivity : ComponentActivity() {
     }
 
     companion object {
+        /** Mở editor trong thư viện với theme này (không có widget). */
+        const val EXTRA_THEME_ID = "theme_id"
         /** Dự phòng khi assets thiếu theme Mặc định (không nên xảy ra). */
         const val FALLBACK_THEME_JSON = """{"id":"default","kind":"built_in","name":"Mặc định","schema_version":1,"version":1,"light":{"background":{"color":"#FFFFFF","kind":"solid","opacity":100},"colors":{"accent":"#FF8A00","background":"#FFFFFF","border":"#E5E7EB","follow_system":false,"primary":"#3366FF","surface":"#F2F2F7","text_primary":"#1A1A1A","text_secondary":"#6B7280"},"shape":{"border_width":1,"padding":12,"radius":16},"typography":{"body_bold":false,"body_size":14,"caption_size":12,"title_bold":true,"title_size":20}},"dark":{"background":{"color":"#121212","kind":"solid","opacity":100},"colors":{"accent":"#FFB25E","background":"#121212","border":"#2E2E2E","follow_system":false,"primary":"#7AA2FF","surface":"#1E1E1E","text_primary":"#F5F5F5","text_secondary":"#A1A1AA"},"shape":{"border_width":1,"padding":12,"radius":16},"typography":{"body_bold":false,"body_size":14,"caption_size":12,"title_bold":true,"title_size":20}}}"""
     }

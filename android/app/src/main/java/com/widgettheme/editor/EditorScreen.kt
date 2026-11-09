@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -26,6 +28,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import com.widgettheme.store.ThemeInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -60,7 +63,9 @@ import kotlin.math.pow
 fun EditorScreen(
     state: EditorState,
     themeName: String,
+    themes: List<ThemeInfo>,
     backgroundBitmap: Bitmap?,
+    onSelectTheme: (ThemeInfo) -> Unit,
     onPickImage: () -> Unit,
     onRemoveImage: () -> Unit,
     onSave: () -> Unit,
@@ -69,6 +74,7 @@ fun EditorScreen(
     var tick by remember { mutableStateOf(0) }
     var tab by remember { mutableStateOf(0) }
     var size by remember { mutableStateOf(PreviewSize.MEDIUM) }
+    var showThemePicker by remember { mutableStateOf(false) }
 
     fun touched() {
         tick++
@@ -93,6 +99,9 @@ fun EditorScreen(
                 }
             }
             Row {
+                TextButton(onClick = { showThemePicker = true }) {
+                    Text("Đổi theme")
+                }
                 TextButton(onClick = { if (state.undo()) touched() }, enabled = state.canUndo) {
                     Text("Hoàn tác")
                 }
@@ -100,6 +109,33 @@ fun EditorScreen(
                     Text("Làm lại")
                 }
             }
+        }
+
+        // Hộp chọn theme khác (UC-01: chọn theme lúc cấu hình widget).
+        if (showThemePicker) {
+            AlertDialog(
+                onDismissRequest = { showThemePicker = false },
+                title = { Text("Chọn theme") },
+                text = {
+                    Column {
+                        themes.forEach { info ->
+                            Text(
+                                info.name,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    onSelectTheme(info)
+                                    showThemePicker = false
+                                    touched()
+                                }.padding(vertical = 8.dp),
+                                fontSize = 15.sp,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showThemePicker = false }) { Text("Đóng") }
+                },
+            )
         }
 
         // -- Xem trước --
