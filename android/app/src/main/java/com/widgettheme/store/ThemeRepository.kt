@@ -4,6 +4,9 @@ import android.content.Context
 import org.json.JSONObject
 import java.io.File
 
+/** Một theme trong thư viện (SC-03). */
+data class ThemeInfo(val id: String, val name: String, val kind: String, val json: String)
+
 /**
  * Kho theme JSON (Giai đoạn 3, Bước 3).
  *
@@ -52,9 +55,6 @@ object ThemeRepository {
     fun themeId(themeJson: String): String = runCatching {
         JSONObject(themeJson).optString("id", "default")
     }.getOrDefault("default")
-
-/** Một theme trong thư viện (SC-03). */
-data class ThemeInfo(val id: String, val name: String, val kind: String, val json: String)
 
     /**
      * Liệt kê mọi theme: theme người dùng (filesDir) thắng theme có sẵn

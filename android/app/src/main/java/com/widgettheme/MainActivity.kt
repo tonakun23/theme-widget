@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -214,10 +215,12 @@ enum class WidgetType(val label: String, val provider: Class<*>) {
     BATTERY("Pin", BatteryWidgetProvider::class.java),
 }
 
+@Composable
 private fun SectionTitle(text: String) {
     Text(text, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.padding(bottom = 8.dp))
 }
 
+@Composable
 private fun WidgetRow(widget: MyWidget, onEdit: () -> Unit, onChangeTheme: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -239,6 +242,7 @@ private fun WidgetRow(widget: MyWidget, onEdit: () -> Unit, onChangeTheme: () ->
     }
 }
 
+@Composable
 private fun ThemeRow(info: ThemeInfo, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -258,6 +262,7 @@ private fun ThemeRow(info: ThemeInfo, onClick: () -> Unit) {
 }
 
 /** 3 chấm màu đại diện: nền / chính / nhấn (gộp từ biến thể Sáng qua Rust). */
+@Composable
 private fun ThemeSwatches(info: ThemeInfo) {
     val resolved = ThemeEngine.resolve(info.json, false)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
