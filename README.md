@@ -89,7 +89,7 @@ cargo run -p theme-cli -- list-themes themes/
 | `theme-cli validate` × 10 theme | cả 10 đều `OK` |
 | `cargo build --release -p theme-ffi` | OK — ra `libtheme_ffi.so` cho **host x86_64 Linux** (chưa phải .so Android) |
 | `cargo ndk ... build --release -p theme-ffi` (09/11, Giai đoạn 2) | ✅ OK — ra `libtheme_ffi.so` cho **arm64-v8a, armeabi-v7a, x86_64** (795 / 550 / 771 KB) |
-| Binding UniFFI + nối Kotlin (09/11, Giai đoạn 2) | ✅ OK — `theme_ffi.kt` sinh ra + `ThemeEngine.kt`/`WidgetUpdater` gọi Rust thật; **chưa kiểm chứng bằng biên dịch Kotlin** (cần Gradle, đang kẹt quyền mạng — xem mục Giai đoạn 2) |
+| Binding UniFFI + nối Kotlin (09/11, Giai đoạn 2) | ✅ OK — `theme_ffi.kt` sinh ra + `ThemeEngine.kt`/`WidgetUpdater` gọi Rust thật; **đã kiểm chứng bằng biên dịch Kotlin trên CI** (run 42634197034) |
 
 Hai lỗi thật đã bắt được nhờ test (đã sửa, test vẫn xanh):
 
@@ -107,24 +107,23 @@ Hai lỗi thật đã bắt được nhờ test (đã sửa, test vẫn xanh):
 | `.so` Android (cargo-ndk) | ✅ Xong — `libtheme_ffi.so` cho arm64-v8a (795 KB), armeabi-v7a (550 KB), x86_64 (771 KB) vào `android/app/src/main/jniLibs/` (file `.so` không commit, build lại được bằng lệnh dưới) |
 | Binding Kotlin (UniFFI) | ✅ Xong — `android/app/src/main/java/uniffi/theme_ffi/theme_ffi.kt` (1.210 dòng): `resolveThemeJson`, `validateColor`, `validateThemeJson` |
 | Nối Kotlin với engine thật | ✅ Xong — `ThemeEngine.kt` gọi Rust qua UniFFI; `WidgetUpdater` đọc themeId từ DataStore, load JSON từ `assets/themes/`, gộp bằng Rust, lỗi thì về Mặc định; `onDeleted` xóa liên kết (BR-18) |
-| APK đầu tiên (Gradle) | ⛔ **Kẹt — cần Tony bật quyền mạng cho app Muse** (xem dưới) |
+| APK đầu tiên (Gradle) | ✅ **Xong — build bằng GitHub Actions** (run 42634197034, commit `475860e`): `app-debug.apk` 16.431.059 byte, chứa `libtheme_ffi.so` cho cả 3 kiến trúc; Gradle trên máy này vẫn kẹt (xem dưới) |
 
-### ⛔ Vì sao Gradle chưa build được APK
+### ✅ APK build bằng GitHub Actions — ⛔ Gradle trên máy này vẫn kẹt
 
-Gradle build nào cũng cần daemon: client Java nói chuyện với daemon Java
-qua TCP trên localhost. Trên máy này, **mọi kết nối TCP do tiến trình Java
-mở đều bị chặn** — đã kiểm chứng bằng chương trình Java tối giản (client
-Java kết nối tới server Java trên 127.0.0.1 thì nhận đúng thông báo chặn
-quyền, server không thấy kết nối nào). Lỗi Gradle thu được là
-`Could not receive a message from the daemon` (daemon vẫn sống, chỉ là
-client không nói chuyện được với nó). Kết nối TCP của Python/curl thì
-bình thường, nên chỉ Java bị chặn.
+Workflow `.github/workflows/build-apk.yml` (chạy tay bằng `workflow_dispatch`)
+đã chạy xanh lần đầu ở run 42634197034 sau 3 lần sửa: (1) `setup-android`
+mặc định cài gói `tools` đã bị Google bỏ → chỉ cài `platform-tools`;
+(2) `tools/uniffi-gen` thiếu `[workspace]` nên cargo từ chối chạy trong
+workspace; (3) thiếu icon launcher `mipmap/ic_launcher` nên AAPT fail.
+APK debug tự ký bằng debug keystore, cài trực tiếp được.
 
-**Cách mở (Tony làm trong app Muse):** mở Cài đặt Muse → Permissions →
-Direct network protocols → chuyển `other_tcp` từ **Deny** sang **Ask**
-(rồi duyệt khi Gradle hỏi). Xong bước này thì chạy lại
-`cd android && ./gradlew assembleDebug` (hoặc Gradle 8.7 đã cài sẵn ở
-`~/gradle-dist/gradle-8.7/bin/gradle`) là build được APK.
+Gradle trên máy này vẫn không build được: daemon cần client Java nối
+qua TCP trên localhost, mà **mọi kết nối TCP do tiến trình Java mở đều
+bị chặn** — đã kiểm chứng bằng chương trình Java tối giản. Tony đã chuyển
+`other_tcp` sang **Ask** và duyệt ở giây 58, nhưng Gradle chỉ chờ ~60
+giây nên vẫn trễ (daemon không nhận được kết nối nào rồi tự dừng).
+Đường bấm thẻ từng cổng coi như không đi được; build APK cứ dùng CI.
 
 Lưu ý khác khi build lại trên máy này: sdkmanager của Java không qua
 được proxy egress (cần bật Basic auth cho HTTPS tunneling) và `/tmp`
