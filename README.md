@@ -88,6 +88,8 @@ cargo run -p theme-cli -- list-themes themes/
 | `cargo clippy --all-targets` | **0 warning, 0 error** |
 | `theme-cli validate` × 10 theme | cả 10 đều `OK` |
 | `cargo build --release -p theme-ffi` | OK — ra `libtheme_ffi.so` cho **host x86_64 Linux** (chưa phải .so Android) |
+| `cargo ndk ... build --release -p theme-ffi` (09/11, Giai đoạn 2) | ✅ OK — ra `libtheme_ffi.so` cho **arm64-v8a, armeabi-v7a, x86_64** (795 / 550 / 771 KB) |
+| Binding UniFFI + nối Kotlin (09/11, Giai đoạn 2) | ✅ OK — `theme_ffi.kt` sinh ra + `ThemeEngine.kt`/`WidgetUpdater` gọi Rust thật; **chưa kiểm chứng bằng biên dịch Kotlin** (cần Gradle, đang kẹt quyền mạng — xem mục Giai đoạn 2) |
 
 Hai lỗi thật đã bắt được nhờ test (đã sửa, test vẫn xanh):
 
@@ -97,13 +99,39 @@ Hai lỗi thật đã bắt được nhờ test (đã sửa, test vẫn xanh):
    trùng id, đổi tên kiểm tra trùng bị lọt. Sửa thành id tăng dần
    `custom-<id gốc>-<số thứ tự>`.
 
-## ⚠️ APK chưa build được trên máy này
+## Giai đoạn 2 — tiến độ thật (09/11/2026, máy này)
 
-Máy này **không có JDK và Android SDK** (đã kiểm tra: `java` không có),
-nên **không chạy được `./gradlew`** và không có APK. Phần `android/` là
-khung Kotlin thật (Manifest, 4 appwidget-provider, ThemeApplier,
-ThemeEditorActivity, DataStore), chưa từng biên dịch — cần kiểm chứng
-bằng Gradle trên máy có SDK.
+| Bước | Kết quả |
+|---|---|
+| JDK 17 + Android SDK | ✅ Xong — OpenJDK 17.0.20.1; SDK: cmdline-tools, platform-tools 37.0.2, platform android-34, build-tools 34.0.0, NDK r26d; `adb` chạy được |
+| `.so` Android (cargo-ndk) | ✅ Xong — `libtheme_ffi.so` cho arm64-v8a (795 KB), armeabi-v7a (550 KB), x86_64 (771 KB) vào `android/app/src/main/jniLibs/` (file `.so` không commit, build lại được bằng lệnh dưới) |
+| Binding Kotlin (UniFFI) | ✅ Xong — `android/app/src/main/java/uniffi/theme_ffi/theme_ffi.kt` (1.210 dòng): `resolveThemeJson`, `validateColor`, `validateThemeJson` |
+| Nối Kotlin với engine thật | ✅ Xong — `ThemeEngine.kt` gọi Rust qua UniFFI; `WidgetUpdater` đọc themeId từ DataStore, load JSON từ `assets/themes/`, gộp bằng Rust, lỗi thì về Mặc định; `onDeleted` xóa liên kết (BR-18) |
+| APK đầu tiên (Gradle) | ⛔ **Kẹt — cần Tony bật quyền mạng cho app Muse** (xem dưới) |
+
+### ⛔ Vì sao Gradle chưa build được APK
+
+Gradle build nào cũng cần daemon: client Java nói chuyện với daemon Java
+qua TCP trên localhost. Trên máy này, **mọi kết nối TCP do tiến trình Java
+mở đều bị chặn** — đã kiểm chứng bằng chương trình Java tối giản (client
+Java kết nối tới server Java trên 127.0.0.1 thì nhận đúng thông báo chặn
+quyền, server không thấy kết nối nào). Lỗi Gradle thu được là
+`Could not receive a message from the daemon` (daemon vẫn sống, chỉ là
+client không nói chuyện được với nó). Kết nối TCP của Python/curl thì
+bình thường, nên chỉ Java bị chặn.
+
+**Cách mở (Tony làm trong app Muse):** mở Cài đặt Muse → Permissions →
+Direct network protocols → chuyển `other_tcp` từ **Deny** sang **Ask**
+(rồi duyệt khi Gradle hỏi). Xong bước này thì chạy lại
+`cd android && ./gradlew assembleDebug` (hoặc Gradle 8.7 đã cài sẵn ở
+`~/gradle-dist/gradle-8.7/bin/gradle`) là build được APK.
+
+Lưu ý khác khi build lại trên máy này: sdkmanager của Java không qua
+được proxy egress (cần bật Basic auth cho HTTPS tunneling) và `/tmp`
+chỉ có 512 MB — các gói SDK đã tải tay bằng curl vào
+`~/android-sdk-downloads/` rồi giải nén vào `~/android-sdk/`.
+Gradle cũng đã hạ heap xuống 768 MB trong `android/gradle.properties`
+vì máy ít RAM trống (daemon 2 GB bị kill khi bắt đầu build).
 
 Để build APK (Giai đoạn 2, trên máy Tony hoặc CI):
 
@@ -111,7 +139,10 @@ bằng Gradle trên máy có SDK.
 2. `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android`
 3. `cargo install cargo-ndk`
 4. `cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o android/app/src/main/jniLibs build --release -p theme-ffi`
-5. Sinh binding Kotlin: `cargo run -p uniffi-bindgen -- generate --library target/aarch64-linux-android/release/libtheme_ffi.so --language kotlin --out-dir android/app/src/main/java`
+5. Sinh binding Kotlin — lưu ý: `uniffi_bindgen` 0.29.5 **không có binary
+   CLI** (`cargo install uniffi_bindgen` báo "has no binaries"), nên dùng
+   chương trình sinh nhỏ trong repo:
+   `cargo run --release --manifest-path tools/uniffi-gen/Cargo.toml -- target/aarch64-linux-android/release/libtheme_ffi.so android/app/src/main/java`
 6. `cd android && ./gradlew assembleDebug`
 
 ## Lộ trình 5 giai đoạn

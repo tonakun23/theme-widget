@@ -3,6 +3,8 @@ package com.widgettheme.widget
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import com.widgettheme.store.WidgetThemeStore
+import kotlinx.coroutines.runBlocking
 
 /**
  * 4 provider widget V1 (F-01..F-05). Mỗi provider chỉ là điểm vào:
@@ -28,7 +30,11 @@ abstract class BaseWidgetProvider(
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         // BR-18: xóa liên kết + ghi đè của widget; theme giữ nguyên.
-        // TODO Giai đoạn 2: gọi WidgetThemeStore.removeWidget() (DataStore).
+        runBlocking {
+            for (appWidgetId in appWidgetIds) {
+                runCatching { WidgetThemeStore.removeWidget(context, appWidgetId) }
+            }
+        }
         super.onDeleted(context, appWidgetIds)
     }
 
