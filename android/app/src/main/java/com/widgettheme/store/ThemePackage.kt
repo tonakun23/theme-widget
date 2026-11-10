@@ -5,10 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
+import java.util.zip.ZipInputStream
 
 /**
  * Gói theme nhập/xuất (Giai đoạn 5, BR-22).
@@ -23,6 +24,7 @@ object ThemePackage {
     const val PACKAGE_VERSION = 1
     const val THEME_ENTRY = "theme.json"
     const val MANIFEST_ENTRY = "manifest.json"
+    private const val MAX_ENTRY_BYTES = 2 * 1024 * 1024
 
     /** Xuất theme thành file .zip trong cache, trả Uri chia sẻ được; lỗi thì null. */
     fun exportTheme(context: Context, themeJson: String): Uri? {
@@ -45,6 +47,64 @@ object ThemePackage {
         } catch (e: Exception) {
             null
         }
+    }
+
+    /**
+     * Đọc `theme.json` từ một gói .zip (Giai đoạn 5, Bước 2 — nhập theme).
+     * Chỉ nhận gói do app này xuất ra: `manifest.json` phải có đúng
+     * `format` + `version`, và phải có mục `theme.json`. File lạ, thiếu
+     * manifest, sai định dạng hoặc quá lớn (> 2 MB/mục) thì trả `null` —
+     * phía gọi báo lỗi, không lưu gì cả. Chỉ đọc chuỗi JSON trong bộ nhớ,
+     * không giải nén file ra đĩa nên không sợ đường dẫn lạ trong zip.
+     */
+    fun readThemeJsonFromPackage(context: Context, uri: Uri): String? {
+        return try {
+            val stream = context.contentResolver.openInputStream(uri) ?: return null
+            var manifestOk = false
+            var themeJson: String? = null
+            ZipInputStream(stream.buffered()).use { zip ->
+                var entry = zip.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        val bytes = readEntryCapped(zip, MAX_ENTRY_BYTES)
+                        if (bytes != null) {
+                            when (entry.name) {
+                                MANIFEST_ENTRY -> {
+                                    val manifest = runCatching {
+                                        JSONObject(String(bytes, Charsets.UTF_8))
+                                    }.getOrNull()
+                                    manifestOk = manifest != null &&
+                                        manifest.optString("format", "") == FORMAT &&
+                                        manifest.optInt("version", -1) == PACKAGE_VERSION
+                                }
+                                THEME_ENTRY -> themeJson =
+                                    String(bytes, Charsets.UTF_8).takeIf { it.isNotBlank() }
+                            }
+                        }
+                    }
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+            if (manifestOk) themeJson else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Đọc một mục zip, trả `null` khi mục vượt giới hạn (từ chối sớm). */
+    private fun readEntryCapped(zip: ZipInputStream, maxBytes: Int): ByteArray? {
+        val out = ByteArrayOutputStream()
+        val buf = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val n = zip.read(buf)
+            if (n < 0) break
+            total += n
+            if (total > maxBytes) return null
+            out.write(buf, 0, n)
+        }
+        return out.toByteArray()
     }
 
     /** Mở share sheet với file gói theme; false khi xuất lỗi. */

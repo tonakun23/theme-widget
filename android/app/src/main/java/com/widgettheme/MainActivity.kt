@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +53,7 @@ import com.widgettheme.widget.NoteWidgetProvider
 import com.widgettheme.widget.ThemeEngine
 import com.widgettheme.widget.WidgetUpdater
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 /**
  * MainActivity — Trang chính SC-02 (Giai đoạn 3, Bước 4).
@@ -68,6 +70,12 @@ class MainActivity : ComponentActivity() {
     private var myWidgets by mutableStateOf<List<MyWidget>>(emptyList())
     private var themes by mutableStateOf<List<ThemeInfo>>(emptyList())
     private var themePickerForWidget by mutableStateOf<Int?>(null)
+
+    /** Chọn file gói theme (.zip) để nhập (Giai đoạn 5, Bước 2). */
+    private val importThemeLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importTheme(it) }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,7 +114,16 @@ class MainActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // -- Thư viện theme (SC-03) --
-                    SectionTitle("Thư viện theme")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SectionTitle("Thư viện theme")
+                        TextButton(onClick = { importThemeLauncher.launch("*/*") }) {
+                            Text("Nhập theme")
+                        }
+                    }
                     themes.forEach { info ->
                         ThemeRow(
                             info,
@@ -188,6 +205,54 @@ class MainActivity : ComponentActivity() {
         if (!ThemePackage.shareTheme(this@MainActivity, info.json)) {
             Toast.makeText(this@MainActivity, "Không xuất được theme", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /**
+     * Nhập gói theme từ file .zip (Giai đoạn 5, Bước 2).
+     *
+     * - Đọc `theme.json` trong gói, từ chối file lạ (sai manifest).
+     * - Kiểm tra theme qua lõi Rust: `validateThemeJson` trả `null`
+     *   thì gói không hợp lệ, không lưu gì cả.
+     * - Theme nhập vào luôn là theme người dùng (`kind` = "custom"):
+     *   không bao giờ ghi đè theme có sẵn. Trùng id thì đổi id mới
+     *   (`<id>_nhap`, `<id>_nhap2`, ...) và thêm "(đã nhập)" vào tên,
+     *   theo đúng cách nhân bản theme có sẵn (BR-04).
+     */
+    private fun importTheme(uri: android.net.Uri) {
+        val themeJson = ThemePackage.readThemeJsonFromPackage(this, uri)
+        if (themeJson == null) {
+            Toast.makeText(this, "Không đọc được gói theme — cần file .zip do app này xuất ra", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (ThemeEngine.validateThemeJson(themeJson) == null) {
+            Toast.makeText(this, "Gói theme không hợp lệ", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val obj = runCatching { JSONObject(themeJson) }.getOrNull()
+        val baseId = obj?.optString("id", "")?.takeIf { it.isNotBlank() }
+        if (obj == null || baseId == null) {
+            Toast.makeText(this, "Gói theme thiếu id", Toast.LENGTH_SHORT).show()
+            return
+        }
+        var newId = baseId
+        var name = obj.optString("name", "Theme")
+        if (ThemeRepository.loadThemeJson(this, newId) != null) {
+            var n = 1
+            do {
+                newId = if (n == 1) "${baseId}_nhap" else "${baseId}_nhap$n"
+                n++
+            } while (ThemeRepository.loadThemeJson(this, newId) != null)
+            name = "$name (đã nhập)"
+        }
+        obj.put("id", newId)
+        obj.put("name", name)
+        obj.put("kind", "custom")
+        if (!ThemeRepository.saveUserTheme(this, newId, obj.toString())) {
+            Toast.makeText(this, "Không lưu được theme đã nhập", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "Đã nhập theme \"$name\"", Toast.LENGTH_SHORT).show()
+        loadData()
     }
 
     private fun openEditor(appWidgetId: Int, themeId: String?) {

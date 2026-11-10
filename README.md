@@ -187,7 +187,7 @@ Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Xuất theme thành gói file (.zip: `manifest.json` + `theme.json`), chia sẻ qua share sheet. FileProvider chỉ mở thư mục cache/theme-packages. Nút "Chia sẻ" ở mỗi dòng theme trong thư viện. | Đang làm — code xong, đang push + CI |
-| 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Chưa làm |
+| 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Đang làm — code xong local (10/11, chưa push/CI): `ThemePackage.readThemeJsonFromPackage` (chỉ nhận gói đúng manifest, giới hạn 2 MB/mục, không giải nén ra đĩa), nút "Nhập theme" ở thư viện (GetContent), kiểm tra qua `ThemeEngine.validateThemeJson`, trùng id thì đổi `<id>_nhap…` + "(đã nhập)", luôn lưu dạng custom, không ghi đè theme có sẵn. |
 | 3 | Build APK một lần cho toàn bộ G4 + G5, Tony test trên máy thật. | Chưa làm |
 
 ## Nâng cấp sau Giai đoạn 3 — nội dung thật cho widget (Tony chốt 10/11/2026)
