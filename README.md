@@ -169,6 +169,25 @@ quyền Java TCP — xem mục Giai đoạn 2).
 | 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | ✅ Xong — CI run 42655576934 xanh, APK 16.513.315 byte (run 42654110945 FAIL compile: ThemeInfo lọt trong object + thiếu @Composable, sửa ở main a9690d3) |
 | 5 | APK mới qua CI + Tony test trên máy thật. | Đang chờ Tony test APK 16.513.315 byte (main a9690d3) |
 
+## Giai đoạn 4 — Material You + sáng/tối + nền Rust vẽ (bắt đầu 10/11/2026)
+
+Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 một thể rồi build một lần. CI vẫn chạy mỗi push để kiểm chứng biên dịch.
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Material You: Kotlin đọc màu hệ thống (Android 12+), truyền sang Rust qua FFI mới `resolve_theme_json_with_system` (Rust đã hỗ trợ sẵn `system: Option<&Colors>` + cờ `follow_system` BR-17). | Đang làm |
+| 2 | Sáng/tối tự động: xem trước trong editor mặc định theo hệ thống (hiện đang cứng Sáng); widget đã theo hệ thống từ G2. | Chưa làm |
+| 3 | Nền Rust vẽ: Rust render nền gradient/bo góc thành ảnh (theme-render), Kotlin vẽ bitmap; thay dần cách tô màu đặc hiện tại. | Chưa làm |
+| 4 | WorkManager: việc nặng (render nền) chạy nền, không chặn 10 giây của BroadcastReceiver. | Chưa làm |
+
+## Giai đoạn 5 — gói theme nhập/xuất
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Xuất theme thành gói file (.zip: theme JSON + ảnh nền), chia sẻ qua share sheet. | Chưa làm |
+| 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Chưa làm |
+| 3 | Build APK một lần cho toàn bộ G4 + G5, Tony test trên máy thật. | Chưa làm |
+
 ## Nâng cấp sau Giai đoạn 3 — nội dung thật cho widget (Tony chốt 10/11/2026)
 
 Trước đây widget chỉ có theme, chữ bên trong là chữ mẫu ("Widget").

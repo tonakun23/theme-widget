@@ -69,6 +69,11 @@ class ThemeEditorActivity : ComponentActivity() {
             dark = false,
             appWidgetId = appWidgetId,
             isPerWidget = isPerWidget,
+            systemColors = { dark ->
+                runCatching {
+                    com.widgettheme.widget.SystemColors.read(this, dark)
+                }.getOrNull()
+            },
         )
         themes = ThemeRepository.listThemes(this)
         if (isPerWidget) {
@@ -91,6 +96,11 @@ class ThemeEditorActivity : ComponentActivity() {
                             dark = state.dark,
                             appWidgetId = appWidgetId,
                             isPerWidget = isPerWidget,
+                            systemColors = { dark ->
+                                runCatching {
+                                    com.widgettheme.widget.SystemColors.read(this, dark)
+                                }.getOrNull()
+                            },
                         )
                         themeName = info.name
                     },

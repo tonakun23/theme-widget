@@ -3,6 +3,7 @@ package com.widgettheme.widget
 import org.json.JSONObject
 import uniffi.theme_ffi.FfiException
 import uniffi.theme_ffi.resolveThemeJson
+import uniffi.theme_ffi.resolveThemeJsonWithSystem
 import uniffi.theme_ffi.validateColor as ffiValidateColor
 import uniffi.theme_ffi.validateThemeJson as ffiValidateThemeJson
 
@@ -29,6 +30,25 @@ object ThemeEngine {
             return null
         }
         return parseResolved(resolvedJson)
+    }
+
+    /**
+     * Gộp theme kèm bảng màu hệ thống Material You (Giai đoạn 4, BR-17).
+     * `systemJson` null (máy < Android 12) thì gộp thường; lỗi khi gộp
+     * kèm hệ thống thì rơi về gộp thường, rồi mới `null`.
+     */
+    fun resolveWithSystem(
+        themeJson: String,
+        dark: Boolean,
+        systemJson: String?,
+    ): ThemeApplier.ResolvedTheme? {
+        if (systemJson == null) return resolve(themeJson, dark)
+        val resolvedJson = try {
+            resolveThemeJsonWithSystem(themeJson, dark, systemJson)
+        } catch (e: Exception) {
+            return resolve(themeJson, dark)
+        }
+        return parseResolved(resolvedJson) ?: resolve(themeJson, dark)
     }
 
     /** Kiểm tra một mã màu (#RGB / #RRGGBB / #RRGGBBAA). */

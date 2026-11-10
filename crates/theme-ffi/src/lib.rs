@@ -43,6 +43,28 @@ pub fn validate_color(color: String) -> bool {
 /// Giai đoạn 2 sẽ truyền cả kho theme (để hỗ trợ `extends`).
 #[uniffi::export]
 pub fn resolve_theme_json(theme_json: String, dark: bool) -> Result<String, FfiError> {
+    resolve_inner(theme_json, dark, None)
+}
+
+/// Gộp theme kèm bảng màu hệ thống Material You (Giai đoạn 4, BR-17).
+/// `system_json` là JSON của [`Colors`] (thiếu trường nào thì trường đó
+/// giữ nguyên màu theme); chỉ áp khi theme bật `follow_system`.
+#[uniffi::export]
+pub fn resolve_theme_json_with_system(
+    theme_json: String,
+    dark: bool,
+    system_json: String,
+) -> Result<String, FfiError> {
+    let system: Colors = serde_json::from_str(&system_json)
+        .map_err(|e| FfiError::InvalidTheme(format!("system_json không hợp lệ: {e}")))?;
+    resolve_inner(theme_json, dark, Some(system))
+}
+
+fn resolve_inner(
+    theme_json: String,
+    dark: bool,
+    system: Option<Colors>,
+) -> Result<String, FfiError> {
     let theme = theme_from_json(&theme_json)?;
     let mut registry: HashMap<String, theme_core::Theme> = HashMap::new();
     registry.insert(DEFAULT_THEME_ID.to_string(), default_theme());
@@ -52,8 +74,7 @@ pub fn resolve_theme_json(theme_json: String, dark: bool) -> Result<String, FfiE
     } else {
         VariantMode::Light
     };
-    let system: Option<&Colors> = None; // Giai đoạn 2: Kotlin truyền bảng Material You.
-    let resolved = resolve_theme(&registry, &theme.id, mode, system, None)?;
+    let resolved = resolve_theme(&registry, &theme.id, mode, system.as_ref(), None)?;
     serde_json::to_string(&resolved).map_err(|e| FfiError::Internal(e.to_string()))
 }
 

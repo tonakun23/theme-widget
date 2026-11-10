@@ -73,7 +73,10 @@ object WidgetUpdater {
         val themeId = runBlocking { WidgetThemeStore.getThemeId(context, appWidgetId) }
         val themeJson = loadThemeJson(context, appWidgetId, themeId) ?: return null
         val dark = isNightMode(context)
-        ThemeEngine.resolve(themeJson, dark)
+        // Material You (Giai đoạn 4, BR-17): Rust chỉ áp màu hệ thống khi
+        // theme bật follow_system; máy < Android 12 thì systemJson null.
+        val systemJson = runCatching { SystemColors.read(context, dark) }.getOrNull()
+        ThemeEngine.resolveWithSystem(themeJson, dark, systemJson)
     }.getOrNull()
 
     /**

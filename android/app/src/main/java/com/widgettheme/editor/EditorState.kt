@@ -28,6 +28,8 @@ class EditorState(
     val appWidgetId: Int,
     /** true = chỉnh riêng cho widget này (BR-12), tiêu đề hiện "Chỉ áp cho widget này". */
     val isPerWidget: Boolean,
+    /** Đọc bảng màu hệ thống Material You (BR-17); mặc định không có. */
+    private val systemColors: (Boolean) -> String? = { null },
 ) {
     var currentJson: String = initialJson
         private set
@@ -124,7 +126,9 @@ class EditorState(
     // -- Nội bộ --
 
     private fun refresh() {
-        resolved = ThemeEngine.resolve(currentJson, dark)
+        // Xem trước cũng áp màu hệ thống khi theme bật follow_system (BR-17).
+        val systemJson = runCatching { systemColors(dark) }.getOrNull()
+        resolved = ThemeEngine.resolveWithSystem(currentJson, dark, systemJson)
         warnings = parseWarnings(ThemeEngine.validateThemeJson(currentJson))
     }
 

@@ -717,6 +717,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -733,6 +735,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
     fun uniffi_theme_ffi_checksum_func_resolve_theme_json(
+): Short
+fun uniffi_theme_ffi_checksum_func_resolve_theme_json_with_system(
 ): Short
 fun uniffi_theme_ffi_checksum_func_validate_color(
 ): Short
@@ -784,6 +788,8 @@ internal interface UniffiLib : Library {
 
     // FFI functions
     fun uniffi_theme_ffi_fn_func_resolve_theme_json(`themeJson`: RustBuffer.ByValue,`dark`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_theme_ffi_fn_func_resolve_theme_json_with_system(`themeJson`: RustBuffer.ByValue,`dark`: Byte,`systemJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_theme_ffi_fn_func_validate_color(`color`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): Byte
@@ -916,6 +922,9 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_theme_ffi_checksum_func_resolve_theme_json() != 33217.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_theme_ffi_checksum_func_resolve_theme_json_with_system() != 2426.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_theme_ffi_checksum_func_validate_color() != 53425.toShort()) {
@@ -1176,6 +1185,21 @@ public object FfiConverterTypeFfiError : FfiConverterRustBuffer<FfiException> {
     uniffiRustCallWithError(FfiException) { _status ->
     UniffiLib.INSTANCE.uniffi_theme_ffi_fn_func_resolve_theme_json(
         FfiConverterString.lower(`themeJson`),FfiConverterBoolean.lower(`dark`),_status)
+}
+    )
+    }
+    
+
+        /**
+         * Gộp theme kèm bảng màu hệ thống Material You (Giai đoạn 4, BR-17).
+         * `system_json` là JSON của [`Colors`] (thiếu trường nào thì trường đó
+         * giữ nguyên màu theme); chỉ áp khi theme bật `follow_system`.
+         */
+    @Throws(FfiException::class) fun `resolveThemeJsonWithSystem`(`themeJson`: kotlin.String, `dark`: kotlin.Boolean, `systemJson`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    uniffiRustCallWithError(FfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_theme_ffi_fn_func_resolve_theme_json_with_system(
+        FfiConverterString.lower(`themeJson`),FfiConverterBoolean.lower(`dark`),FfiConverterString.lower(`systemJson`),_status)
 }
     )
     }
