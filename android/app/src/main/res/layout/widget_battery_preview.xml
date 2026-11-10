@@ -13,19 +13,19 @@
             android:id="@+id/widget_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Widget"
+            android:text="85%"
             android:textSize="20sp" />
         <TextView
             android:id="@+id/widget_body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
+            android:text="Pin"
             android:textSize="14sp" />
         <TextView
             android:id="@+id/widget_accent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
+            android:text="Pin"
             android:textSize="12sp" />
     </LinearLayout>
 </FrameLayout>

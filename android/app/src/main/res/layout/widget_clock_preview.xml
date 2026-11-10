@@ -9,23 +9,25 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="12dp">
-        <TextView
+        <TextClock
             android:id="@+id/widget_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Widget"
+            android:format12Hour="hh:mm a"
+            android:format24Hour="HH:mm"
             android:textSize="20sp" />
-        <TextView
+        <TextClock
             android:id="@+id/widget_body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
+            android:format12Hour="EEEE, d MMMM"
+            android:format24Hour="EEEE, d MMMM"
             android:textSize="14sp" />
         <TextView
             android:id="@+id/widget_accent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text=""
+            android:text="Đồng hồ"
             android:textSize="12sp" />
     </LinearLayout>
 </FrameLayout>

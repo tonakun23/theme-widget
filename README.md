@@ -166,7 +166,17 @@ quyền Java TCP — xem mục Giai đoạn 2).
 | 1 | Nền tảng ảnh nền riêng từng widget: lưu ảnh theo appWidgetId, vẽ bitmap lên widget (RemoteViews). | ✅ Xong — CI run 42645086578 xanh, APK 16.431.395 byte |
 | 2 | Trạng thái editor Kotlin: undo/redo (snapshot JSON), nháp, dùng FFI resolve/validate có sẵn. | ✅ Xong — CI run 42646281937 xanh |
 | 3 | SC-05 editor thật: preview live + 4 tab Màu/Chữ/Hình khối/Nền + cảnh báo tương phản + Sửa nhanh + lưu (BR-04 nhân bản, BR-12 ghi đè). | ✅ Xong — CI run 42652633786 xanh, APK 16.480.547 byte (lỗi import `key` ở run 42647873013 đã sửa ở main 1e65bde) |
-| 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | Đang làm |
+| 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | ✅ Xong — CI run 42655576934 xanh, APK 16.513.315 byte (run 42654110945 FAIL compile: ThemeInfo lọt trong object + thiếu @Composable, sửa ở main a9690d3) |
+| 5 | APK mới qua CI + Tony test trên máy thật. | Đang chờ Tony test APK 16.513.315 byte (main a9690d3) |
+
+## Nâng cấp sau Giai đoạn 3 — nội dung thật cho widget (Tony chốt 10/11/2026)
+
+Trước đây widget chỉ có theme, chữ bên trong là chữ mẫu ("Widget").
+
+- Đồng hồ: `TextClock` giờ thật (HH:mm) + ngày thật ("Thứ Ba, 10 tháng 11"), hệ thống tự cập nhật mỗi phút, không cần app thức dậy.
+- Lịch: `TextClock` số ngày thật + "Thứ ..., tháng ... năm ...".
+- Pin: đọc % pin thật qua sticky broadcast `ACTION_BATTERY_CHANGED` (không cần quyền), hiện "Đang sạc" khi đang sạc; chạm vào widget để làm mới ngay (onUpdate của hệ thống tối thiểu 30 phút một lần).
+- Ghi chú: chưa làm (cần màn nhập chữ) — để nâng cấp sau.
 | 4 | Trang chính SC-02/SC-03/SC-06 + luồng cấu hình UC-01 (chọn theme + ảnh lúc thêm widget). | Chưa làm |
 | 5 | APK mới qua CI + Tony test trên máy thật. | Chưa làm |
 

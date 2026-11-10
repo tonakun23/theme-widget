@@ -28,6 +28,26 @@ abstract class BaseWidgetProvider(
         }
     }
 
+    override fun onReceive(context: Context, intent: android.content.Intent) {
+        // Chạm vào widget pin để làm mới % pin ngay.
+        if (intent.action == WidgetUpdater.ACTION_REFRESH) {
+            val appWidgetId = intent.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID,
+            )
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                WidgetUpdater.updateWidget(
+                    context,
+                    AppWidgetManager.getInstance(context),
+                    appWidgetId,
+                    layoutRes,
+                )
+            }
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         // BR-18: xóa liên kết + ghi đè của widget; theme giữ nguyên.
         runBlocking {

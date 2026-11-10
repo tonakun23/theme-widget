@@ -52,6 +52,11 @@ object WidgetUpdater {
         }.getOrNull()
         val views: RemoteViews =
             ThemeApplier.apply(layoutRes, theme, context.packageName, backgroundBitmap)
+        // Nội dung thật: đồng hồ/lịch tự cập nhật qua TextClock trong layout;
+        // pin đọc mức hiện tại + chạm để làm mới.
+        if (layoutRes == R.layout.widget_battery) {
+            applyBatteryContent(context, appWidgetId, views)
+        }
         runCatching {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }.onFailure {
@@ -81,6 +86,49 @@ object WidgetUpdater {
             com.widgettheme.store.ThemeRepository.loadThemeJson(context, id)?.let { return it }
         }
         return null
+    }
+
+    /** Hành động làm mới khi chạm vào widget pin. */
+    const val ACTION_REFRESH = "com.widgettheme.ACTION_REFRESH"
+
+    /**
+     * Ghi % pin thật lên widget pin. Đọc qua sticky broadcast
+     * ACTION_BATTERY_CHANGED (không cần quyền). Đọc lỗi thì giữ nguyên
+     * chữ mẫu trong layout, không ghi đè bậy.
+     */
+    private fun applyBatteryContent(context: Context, appWidgetId: Int, views: RemoteViews) {
+        val battery = runCatching {
+            context.registerReceiver(
+                null,
+                android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED),
+            )
+        }.getOrNull() ?: return
+        val level = battery.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1)
+        val scale = battery.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, 100)
+        if (level < 0 || scale <= 0) return
+        val percent = level * 100 / scale
+        val status = battery.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
+        val charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+            status == android.os.BatteryManager.BATTERY_STATUS_FULL
+        views.setTextViewText(R.id.widget_title, "$percent%")
+        views.setTextViewText(
+            R.id.widget_body,
+            if (charging) "Đang sạc" else "Pin còn $percent%",
+        )
+        // Chạm vào widget để làm mới ngay: pin không tự cập nhật liên tục
+        // (onUpdate của hệ thống tối thiểu 30 phút một lần).
+        val refreshIntent = android.content.Intent(context, BatteryWidgetProvider::class.java).apply {
+            action = ACTION_REFRESH
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        }
+        val pending = android.app.PendingIntent.getBroadcast(
+            context,
+            appWidgetId,
+            refreshIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+        views.setOnClickPendingIntent(R.id.widget_root, pending)
     }
 
     private fun isNightMode(context: Context): Boolean {
