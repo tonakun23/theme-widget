@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.widgettheme.editor.ThemeEditorActivity
 import com.widgettheme.store.ThemeInfo
+import com.widgettheme.store.ThemePackage
 import com.widgettheme.store.ThemeRepository
 import com.widgettheme.store.WidgetThemeStore
 import com.widgettheme.widget.BatteryWidgetProvider
@@ -107,7 +108,11 @@ class MainActivity : ComponentActivity() {
                     // -- Thư viện theme (SC-03) --
                     SectionTitle("Thư viện theme")
                     themes.forEach { info ->
-                        ThemeRow(info) { openEditor(AppWidgetManager.INVALID_APPWIDGET_ID, info.id) }
+                        ThemeRow(
+                            info,
+                            onClick = { openEditor(AppWidgetManager.INVALID_APPWIDGET_ID, info.id) },
+                            onExport = { exportTheme(info) },
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
@@ -178,6 +183,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Xuất theme thành gói .zip rồi mở share sheet (Giai đoạn 5). */
+    private fun exportTheme(info: ThemeInfo) {
+        if (!ThemePackage.shareTheme(this@MainActivity, info.json)) {
+            Toast.makeText(this@MainActivity, "Không xuất được theme", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun openEditor(appWidgetId: Int, themeId: String?) {
         val intent = Intent(this, ThemeEditorActivity::class.java).apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -243,7 +255,7 @@ private fun WidgetRow(widget: MyWidget, onEdit: () -> Unit, onChangeTheme: () ->
 }
 
 @Composable
-private fun ThemeRow(info: ThemeInfo, onClick: () -> Unit) {
+private fun ThemeRow(info: ThemeInfo, onClick: () -> Unit, onExport: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .background(Color(0xFFF2F2F7), RoundedCornerShape(12.dp))
@@ -257,7 +269,7 @@ private fun ThemeRow(info: ThemeInfo, onClick: () -> Unit) {
             Text(info.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             Text(if (info.kind == "built_in") "Có sẵn" else "Của tôi", fontSize = 13.sp, color = Color.Gray)
         }
-        Text("Mở", fontSize = 14.sp, color = Color.Gray)
+        TextButton(onClick = onExport) { Text("Chia sẻ") }
     }
 }
 

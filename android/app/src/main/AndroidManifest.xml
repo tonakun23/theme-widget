@@ -74,6 +74,17 @@
                 android:resource="@xml/battery_widget_info" />
         </receiver>
 
+        <!-- Chia sẻ gói theme qua FileProvider (Giai đoạn 5). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Nhận đổi sáng/tối + đổi hình nền để cập nhật widget (UC-06).
              TODO Giai đoạn 4: đăng ký BroadcastReceiver CONFIGURATION_CHANGED. -->
     </application>

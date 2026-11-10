@@ -180,13 +180,13 @@ Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 
 | 3 | Nền Rust vẽ: Rust render nền gradient/bo góc thành ảnh (theme-render), Kotlin vẽ bitmap; thay dần cách tô màu đặc hiện tại. | ✅ Xong — CI run 42743654359 xanh (APK 17.040.823 byte, chỉ lưu ở CI) |
 | 3a | Rust `crates/theme-core/src/render.rs`: chỉ render khi `bg_kind` = Gradient (dọc, màu nền -> màu mặt, bo góc khử răng cưa, độ mờ `opacity`); Solid/Image trả `None`. Thêm dep `image` (chỉ PNG). FFI mới `render_background_png`. 3 test mới, tổng test Rust 31 passed (17 core + 14 editor). | ✅ Xong — CI run 42743654359 xanh |
 | 3b | Kotlin: `ThemeEngine.renderBackground`, `WidgetUpdater` ưu tiên ảnh riêng (G3) -> gradient Rust -> màu trơn; kích thước widget lấy từ AppWidgetOptions; xem trước editor vẽ gradient bằng Brush. | ✅ Xong — CI run 42743654359 xanh |
-| 4 | WorkManager: `WidgetRefreshWorker` (CoroutineWorker) làm mới mọi widget ở nền — một lần sau khi sửa theme trong thư viện (trước đây widget dùng theme đó không tự cập nhật), định kỳ 15 phút cho pin % tươi hơn + vẽ lại gradient khi đổi Sáng/Tối; bật ở `onEnabled`, tắt ở `onDisabled`. | Đang làm — code xong, đang push + CI |
+| 4 | WorkManager: `WidgetRefreshWorker` (CoroutineWorker) làm mới mọi widget ở nền — một lần sau khi sửa theme trong thư viện (trước đây widget dùng theme đó không tự cập nhật), định kỳ 15 phút cho pin % tươi hơn + vẽ lại gradient khi đổi Sáng/Tối; bật ở `onEnabled`, tắt ở `onDisabled`. | ✅ Xong — CI run 42744644625 xanh (APK 17.040.882 byte, chỉ lưu ở CI) |
 
 ## Giai đoạn 5 — gói theme nhập/xuất
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Xuất theme thành gói file (.zip: theme JSON + ảnh nền), chia sẻ qua share sheet. | Chưa làm |
+| 1 | Xuất theme thành gói file (.zip: `manifest.json` + `theme.json`), chia sẻ qua share sheet. FileProvider chỉ mở thư mục cache/theme-packages. Nút "Chia sẻ" ở mỗi dòng theme trong thư viện. | Đang làm — code xong, đang push + CI |
 | 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Chưa làm |
 | 3 | Build APK một lần cho toàn bộ G4 + G5, Tony test trên máy thật. | Chưa làm |
 
