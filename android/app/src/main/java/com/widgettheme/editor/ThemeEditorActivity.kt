@@ -172,6 +172,8 @@ class ThemeEditorActivity : ComponentActivity() {
                         state.currentJson,
                     )
                 }
+                // Mọi widget dùng theme này làm mới ở chế độ nền (G4).
+                com.widgettheme.worker.WidgetRefreshWorker.enqueue(this@ThemeEditorActivity)
             }
             state.clearDraft(this@ThemeEditorActivity)
             val done = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)

@@ -28,6 +28,18 @@ abstract class BaseWidgetProvider(
         }
     }
 
+    override fun onEnabled(context: Context) {
+        // Widget đầu tiên được thêm: bật làm mới định kỳ 15 phút (G4).
+        com.widgettheme.worker.WidgetRefreshWorker.enqueuePeriodic(context)
+        super.onEnabled(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        // Widget cuối cùng bị gỡ: tắt làm mới định kỳ.
+        com.widgettheme.worker.WidgetRefreshWorker.cancelPeriodic(context)
+        super.onDisabled(context)
+    }
+
     override fun onReceive(context: Context, intent: android.content.Intent) {
         // Chạm vào widget pin để làm mới % pin ngay.
         if (intent.action == WidgetUpdater.ACTION_REFRESH) {

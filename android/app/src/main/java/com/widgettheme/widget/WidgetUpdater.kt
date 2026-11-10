@@ -19,6 +19,25 @@ import kotlinx.coroutines.runBlocking
  */
 object WidgetUpdater {
 
+    /** Cập nhật mọi widget của cả 4 provider (dùng trong WorkManager, G4). */
+    fun updateAllWidgets(context: Context) {
+        val manager = AppWidgetManager.getInstance(context)
+        val providers = listOf(
+            ClockWidgetProvider::class.java,
+            CalendarWidgetProvider::class.java,
+            NoteWidgetProvider::class.java,
+            BatteryWidgetProvider::class.java,
+        )
+        for (provider in providers) {
+            val ids = runCatching {
+                manager.getAppWidgetIds(android.content.ComponentName(context, provider))
+            }.getOrNull() ?: continue
+            for (id in ids) {
+                runCatching { updateWidgetByProvider(context, manager, id) }
+            }
+        }
+    }
+
     /** Cập nhật widget theo loại lấy từ AppWidgetInfo (dùng khi editor không biết layout). */
     fun updateWidgetByProvider(
         context: Context,
