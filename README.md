@@ -186,9 +186,9 @@ Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Xuất theme thành gói file (.zip: `manifest.json` + `theme.json`), chia sẻ qua share sheet. FileProvider chỉ mở thư mục cache/theme-packages. Nút "Chia sẻ" ở mỗi dòng theme trong thư viện. | Đang làm — code xong, đang push + CI |
-| 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Đang làm — code xong local (10/11, chưa push/CI): `ThemePackage.readThemeJsonFromPackage` (chỉ nhận gói đúng manifest, giới hạn 2 MB/mục, không giải nén ra đĩa), nút "Nhập theme" ở thư viện (GetContent), kiểm tra qua `ThemeEngine.validateThemeJson`, trùng id thì đổi `<id>_nhap…` + "(đã nhập)", luôn lưu dạng custom, không ghi đè theme có sẵn. |
-| 3 | Build APK một lần cho toàn bộ G4 + G5, Tony test trên máy thật. | Chưa làm |
+| 1 | Xuất theme thành gói file (.zip: `manifest.json` + `theme.json`), chia sẻ qua share sheet. FileProvider chỉ mở thư mục cache/theme-packages. Nút "Chia sẻ" ở mỗi dòng theme trong thư viện. | Xong — CI xanh run 42745575525 (10/11). |
+| 2 | Nhập gói theme: chọn file, kiểm tra qua Rust (validate), lưu vào filesDir/themes. | Xong — CI xanh run 42772179631 (10/11): `ThemePackage.readThemeJsonFromPackage` (chỉ nhận gói đúng manifest, giới hạn 2 MB/mục, không giải nén ra đĩa), nút "Nhập theme" ở thư viện (GetContent), kiểm tra qua `ThemeEngine.validateThemeJson`, trùng id thì đổi `<id>_nhap…` + "(đã nhập)", luôn lưu dạng custom, không ghi đè theme có sẵn. Lần CI đầu run 42769768121 fail do Bước 2 vô tình thay import ZipOutputStream bằng ZipInputStream; sửa 1 dòng (e7c2124), CI chạy lại xanh. |
+| 3 | Build APK một lần cho toàn bộ G4 + G5, Tony test trên máy thật. | Xong — APK 17.057.722 byte build từ main e7c2124 (run 42772179631), đã kiểm chứng chứa AndroidManifest + libtheme_ffi.so đủ 3 kiến trúc + classes.dex, đã gửi Tony test trên máy thật. Nhập theme vẫn cần test trên máy thật (CI chỉ kiểm chứng biên dịch). |
 
 ## Nâng cấp sau Giai đoạn 3 — nội dung thật cho widget (Tony chốt 10/11/2026)
 
