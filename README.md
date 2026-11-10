@@ -175,8 +175,8 @@ Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | Material You: Kotlin đọc màu hệ thống (Android 12+), truyền sang Rust qua FFI mới `resolve_theme_json_with_system` (Rust đã hỗ trợ sẵn `system: Option<&Colors>` + cờ `follow_system` BR-17). | Đang làm |
-| 2 | Sáng/tối tự động: xem trước trong editor mặc định theo hệ thống (hiện đang cứng Sáng); widget đã theo hệ thống từ G2. | Chưa làm |
+| 1 | Material You: Kotlin đọc màu hệ thống (Android 12+), truyền sang Rust qua FFI mới `resolve_theme_json_with_system` (Rust đã hỗ trợ sẵn `system: Option<&Colors>` + cờ `follow_system` BR-17). | ✅ Xong — CI run 42741796817 xanh (APK 16.605.079 byte, chưa gửi Tony theo chốt 10/11) |
+| 2 | Sáng/tối tự động: xem trước trong editor mặc định theo hệ thống (hiện đang cứng Sáng); widget đã theo hệ thống từ G2. | Đang làm |
 | 3 | Nền Rust vẽ: Rust render nền gradient/bo góc thành ảnh (theme-render), Kotlin vẽ bitmap; thay dần cách tô màu đặc hiện tại. | Chưa làm |
 | 4 | WorkManager: việc nặng (render nền) chạy nền, không chặn 10 giây của BroadcastReceiver. | Chưa làm |
 

@@ -64,9 +64,14 @@ class ThemeEditorActivity : ComponentActivity() {
         val initialJson = loadInitialJson()
         themeName = ThemeRepository.themeName(initialJson)
         val isPerWidget = appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
+        // Sáng/tối tự động (Giai đoạn 4): xem trước mặc định theo hệ thống;
+        // người dùng vẫn đổi tay bằng công tắc Sáng/Tối trong editor.
+        val nightMask = resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        val darkBySystem = nightMask == android.content.res.Configuration.UI_MODE_NIGHT_YES
         editorState = EditorState(
             initialJson = initialJson,
-            dark = false,
+            dark = darkBySystem,
             appWidgetId = appWidgetId,
             isPerWidget = isPerWidget,
             systemColors = { dark ->
