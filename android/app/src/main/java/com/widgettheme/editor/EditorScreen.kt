@@ -38,7 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -240,10 +242,16 @@ private fun WidgetPreview(
     }
     val bg = parseHex(resolved.background)
     val shape = RoundedCornerShape(resolved.radius.dp)
+    // Xem trước gradient như widget thật (Giai đoạn 4): dọc, nền -> mặt.
+    val bgBrush: Brush = if (resolved.bgKind == "gradient") {
+        Brush.verticalGradient(listOf(parseHex(resolved.background), parseHex(resolved.surface)))
+    } else {
+        SolidColor(bg)
+    }
     Box(
         modifier = Modifier.fillMaxWidth().height(size.heightDp.dp)
             .clip(shape)
-            .background(bg)
+            .background(bgBrush)
             .border(resolved.borderWidth.dp, parseHex(resolved.border), shape)
             .padding(resolved.padding.dp),
     ) {

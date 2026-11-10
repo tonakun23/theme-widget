@@ -65,6 +65,15 @@ fn resolve_inner(
     dark: bool,
     system: Option<Colors>,
 ) -> Result<String, FfiError> {
+    let resolved = resolve_struct(theme_json, dark, system)?;
+    serde_json::to_string(&resolved).map_err(|e| FfiError::Internal(e.to_string()))
+}
+
+fn resolve_struct(
+    theme_json: String,
+    dark: bool,
+    system: Option<Colors>,
+) -> Result<theme_core::ResolvedTheme, FfiError> {
     let theme = theme_from_json(&theme_json)?;
     let mut registry: HashMap<String, theme_core::Theme> = HashMap::new();
     registry.insert(DEFAULT_THEME_ID.to_string(), default_theme());
@@ -74,8 +83,24 @@ fn resolve_inner(
     } else {
         VariantMode::Light
     };
-    let resolved = resolve_theme(&registry, &theme.id, mode, system.as_ref(), None)?;
-    serde_json::to_string(&resolved).map_err(|e| FfiError::Internal(e.to_string()))
+    resolve_theme(&registry, &theme.id, mode, system.as_ref(), None).map_err(FfiError::from)
+}
+
+/// Render nền theme thành PNG (Giai đoạn 4, theme-render).
+/// Trả `None` khi nền là màu trơn hoặc ảnh (Kotlin dùng đường tô màu /
+/// ảnh nền riêng như trước). Gradient mới render thành ảnh.
+#[uniffi::export]
+pub fn render_background_png(
+    theme_json: String,
+    dark: bool,
+    width: u32,
+    height: u32,
+    radius_px: u32,
+) -> Result<Option<Vec<u8>>, FfiError> {
+    let resolved = resolve_struct(theme_json, dark, None)?;
+    Ok(theme_core::render_resolved_background(
+        &resolved, width, height, radius_px,
+    ))
 }
 
 /// Kiểm tra một theme JSON, trả về danh sách cảnh báo (tương phản...) dạng JSON.

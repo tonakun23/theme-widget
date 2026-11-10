@@ -176,8 +176,10 @@ Tony chốt 10/11: không build APK vội từng bước — làm hết G4 + G5 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Material You: Kotlin đọc màu hệ thống (Android 12+), truyền sang Rust qua FFI mới `resolve_theme_json_with_system` (Rust đã hỗ trợ sẵn `system: Option<&Colors>` + cờ `follow_system` BR-17). | ✅ Xong — CI run 42741796817 xanh (APK 16.605.079 byte, chưa gửi Tony theo chốt 10/11) |
-| 2 | Sáng/tối tự động: xem trước trong editor mặc định theo hệ thống (hiện đang cứng Sáng); widget đã theo hệ thống từ G2. | Đang làm |
-| 3 | Nền Rust vẽ: Rust render nền gradient/bo góc thành ảnh (theme-render), Kotlin vẽ bitmap; thay dần cách tô màu đặc hiện tại. | Chưa làm |
+| 2 | Sáng/tối tự động: xem trước trong editor mặc định theo hệ thống (hiện đang cứng Sáng); widget đã theo hệ thống từ G2. | ✅ Xong — CI run 42742507541 xanh (APK chỉ lưu ở CI, không gửi Tony) |
+| 3 | Nền Rust vẽ: Rust render nền gradient/bo góc thành ảnh (theme-render), Kotlin vẽ bitmap; thay dần cách tô màu đặc hiện tại. | Đang làm — code xong, đang push + CI |
+| 3a | Rust `crates/theme-core/src/render.rs`: chỉ render khi `bg_kind` = Gradient (dọc, màu nền -> màu mặt, bo góc khử răng cưa, độ mờ `opacity`); Solid/Image trả `None`. Thêm dep `image` (chỉ PNG). FFI mới `render_background_png`. 3 test mới, tổng test Rust 31 passed (17 core + 14 editor). | Đang làm — code xong, đang push + CI |
+| 3b | Kotlin: `ThemeEngine.renderBackground`, `WidgetUpdater` ưu tiên ảnh riêng (G3) -> gradient Rust -> màu trơn; kích thước widget lấy từ AppWidgetOptions; xem trước editor vẽ gradient bằng Brush. | Đang làm — code xong, đang push + CI |
 | 4 | WorkManager: việc nặng (render nền) chạy nền, không chặn 10 giây của BroadcastReceiver. | Chưa làm |
 
 ## Giai đoạn 5 — gói theme nhập/xuất

@@ -40,6 +40,7 @@ object ThemeApplier {
         val padding: Float, // dp
         val borderWidth: Float, // dp
         val opacity: Float, // 0-100 %
+        val bgKind: String = "solid", // solid | gradient | image (Rust BgKind)
     )
 
     private fun parse(hex: String): Int = try {

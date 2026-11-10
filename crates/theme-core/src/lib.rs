@@ -9,6 +9,7 @@
 pub mod color;
 pub mod error;
 pub mod model;
+pub mod render;
 pub mod resolve;
 
 pub use color::{
@@ -20,6 +21,7 @@ pub use model::{
     default_theme, Background, BgKind, Colors, ResolvedTheme, Shape, Theme, ThemeKind, Typography,
     Variant, VariantMode, CURRENT_SCHEMA_VERSION, DEFAULT_THEME_ID, MAX_INHERITANCE_DEPTH,
 };
+pub use render::render_resolved_background;
 pub use resolve::{
     inheritance_chain, load_themes_from_dir, resolve_theme, theme_from_json, validate_theme,
     Warning,

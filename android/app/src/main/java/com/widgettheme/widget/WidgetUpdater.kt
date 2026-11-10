@@ -44,11 +44,13 @@ object WidgetUpdater {
         appWidgetId: Int,
         layoutRes: Int,
     ) {
-        val theme = resolveForWidget(context, appWidgetId) ?: defaultTheme()
-        // Ảnh nền riêng từng widget (Giai đoạn 3): đã thu nhỏ lúc lưu nên
-        // đọc nhanh; lỗi thì null -> rơi về nền màu, widget không vỡ.
+        val resolved = resolveForWidget(context, appWidgetId)
+        val theme = resolved?.theme ?: defaultTheme()
+        // Ảnh nền (theo thứ tự ưu tiên): ảnh riêng của widget (G3) ->
+        // gradient do Rust vẽ (G4) -> màu trơn (null, ThemeApplier tô màu).
+        // Lỗi thì null -> rơi về nền màu, widget không vỡ.
         val backgroundBitmap = runCatching {
-            com.widgettheme.store.BackgroundImageStore.load(context, appWidgetId)
+            resolveBackgroundBitmap(context, appWidgetId, resolved)
         }.getOrNull()
         val views: RemoteViews =
             ThemeApplier.apply(layoutRes, theme, context.packageName, backgroundBitmap)
@@ -65,19 +67,60 @@ object WidgetUpdater {
         }
     }
 
+    /** Theme đã gộp kèm JSON gốc + cờ Sáng/Tối (cần cho theme-render). */
+    private data class ResolvedWidget(
+        val theme: ThemeApplier.ResolvedTheme,
+        val themeJson: String,
+        val dark: Boolean,
+    )
+
     /** Đọc themeId + JSON theme, gọi Rust gộp. Lỗi bất kỳ thì `null`. */
     private fun resolveForWidget(
         context: Context,
         appWidgetId: Int,
-    ): ThemeApplier.ResolvedTheme? = runCatching {
+    ): ResolvedWidget? = runCatching {
         val themeId = runBlocking { WidgetThemeStore.getThemeId(context, appWidgetId) }
         val themeJson = loadThemeJson(context, appWidgetId, themeId) ?: return null
         val dark = isNightMode(context)
         // Material You (Giai đoạn 4, BR-17): Rust chỉ áp màu hệ thống khi
         // theme bật follow_system; máy < Android 12 thì systemJson null.
         val systemJson = runCatching { SystemColors.read(context, dark) }.getOrNull()
-        ThemeEngine.resolveWithSystem(themeJson, dark, systemJson)
+        val theme = ThemeEngine.resolveWithSystem(themeJson, dark, systemJson) ?: return null
+        ResolvedWidget(theme, themeJson, dark)
     }.getOrNull()
+
+    /**
+     * Bitmap nền của widget: ảnh riêng (G3) thắng trước, rồi gradient do
+     * Rust vẽ (G4); màu trơn thì `null` để ThemeApplier tô màu trực tiếp.
+     */
+    private fun resolveBackgroundBitmap(
+        context: Context,
+        appWidgetId: Int,
+        resolved: ResolvedWidget?,
+    ): android.graphics.Bitmap? {
+        com.widgettheme.store.BackgroundImageStore.load(context, appWidgetId)?.let { return it }
+        val r = resolved ?: return null
+        if (r.theme.bgKind != "gradient") return null
+        val (wPx, hPx) = widgetSizePx(context, appWidgetId)
+        val density = context.resources.displayMetrics.density
+        val radiusPx = (r.theme.radius * density).toInt().coerceAtLeast(0)
+        val png = ThemeEngine.renderBackground(r.themeJson, r.dark, wPx, hPx, radiusPx)
+            ?: return null
+        return android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+    }
+
+    /** Kích thước widget (px) từ AppWidgetOptions; thiếu thì mặc định 360x200dp. */
+    private fun widgetSizePx(context: Context, appWidgetId: Int): Pair<Int, Int> {
+        val opts = runCatching {
+            AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
+        }.getOrNull()
+        val density = context.resources.displayMetrics.density
+        val wDp = opts?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
+        val hDp = opts?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+        val wPx = if (wDp > 0) (wDp * density).toInt() else (360 * density).toInt()
+        val hPx = if (hDp > 0) (hDp * density).toInt() else (200 * density).toInt()
+        return wPx.coerceIn(1, 1024) to hPx.coerceIn(1, 1024)
+    }
 
     /**
      * JSON theme của widget: ghi đè riêng (BR-12) thắng trước, rồi theme

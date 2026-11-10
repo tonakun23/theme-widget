@@ -2,6 +2,7 @@ package com.widgettheme.widget
 
 import org.json.JSONObject
 import uniffi.theme_ffi.FfiException
+import uniffi.theme_ffi.renderBackgroundPng
 import uniffi.theme_ffi.resolveThemeJson
 import uniffi.theme_ffi.resolveThemeJsonWithSystem
 import uniffi.theme_ffi.validateColor as ffiValidateColor
@@ -51,6 +52,23 @@ object ThemeEngine {
         return parseResolved(resolvedJson) ?: resolve(themeJson, dark)
     }
 
+    /**
+     * Render nền gradient của theme thành PNG (Giai đoạn 4, theme-render).
+     * Trả `null` khi nền không phải gradient hoặc render lỗi — phía gọi
+     * dùng đường tô màu / ảnh nền riêng như trước.
+     */
+    fun renderBackground(
+        themeJson: String,
+        dark: Boolean,
+        widthPx: Int,
+        heightPx: Int,
+        radiusPx: Int,
+    ): ByteArray? = try {
+        renderBackgroundPng(themeJson, dark, widthPx.toUInt(), heightPx.toUInt(), radiusPx.toUInt())
+    } catch (e: Exception) {
+        null
+    }
+
     /** Kiểm tra một mã màu (#RGB / #RRGGBB / #RRGGBBAA). */
     fun validateColor(color: String): Boolean = try {
         ffiValidateColor(color)
@@ -89,6 +107,7 @@ object ThemeEngine {
             padding = o.optDouble("padding", 12.0).toFloat(),
             borderWidth = o.optDouble("border_width", 1.0).toFloat(),
             opacity = o.optDouble("opacity", 100.0).toFloat(),
+            bgKind = o.optString("bg_kind", "solid"),
         )
     } catch (e: Exception) {
         null

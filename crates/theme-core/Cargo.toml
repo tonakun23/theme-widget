@@ -10,3 +10,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 schemars = { version = "0.8", features = ["derive"] }
 thiserror = "2"
+# Chỉ cần PNG cho theme-render (Giai đoạn 4); tắt mặc định cho nhẹ.
+image = { version = "0.25", default-features = false, features = ["png"] }

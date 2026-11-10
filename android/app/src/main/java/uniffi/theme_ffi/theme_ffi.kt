@@ -719,6 +719,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -734,7 +736,9 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 // when the library is loaded.
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
-    fun uniffi_theme_ffi_checksum_func_resolve_theme_json(
+    fun uniffi_theme_ffi_checksum_func_render_background_png(
+): Short
+fun uniffi_theme_ffi_checksum_func_resolve_theme_json(
 ): Short
 fun uniffi_theme_ffi_checksum_func_resolve_theme_json_with_system(
 ): Short
@@ -787,7 +791,9 @@ internal interface UniffiLib : Library {
     }
 
     // FFI functions
-    fun uniffi_theme_ffi_fn_func_resolve_theme_json(`themeJson`: RustBuffer.ByValue,`dark`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_theme_ffi_fn_func_render_background_png(`themeJson`: RustBuffer.ByValue,`dark`: Byte,`width`: Int,`height`: Int,`radiusPx`: Int,uniffi_out_err: UniffiRustCallStatus, 
+): RustBuffer.ByValue
+fun uniffi_theme_ffi_fn_func_resolve_theme_json(`themeJson`: RustBuffer.ByValue,`dark`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun uniffi_theme_ffi_fn_func_resolve_theme_json_with_system(`themeJson`: RustBuffer.ByValue,`dark`: Byte,`systemJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
@@ -921,6 +927,9 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
+    if (lib.uniffi_theme_ffi_checksum_func_render_background_png() != 32943.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_theme_ffi_checksum_func_resolve_theme_json() != 33217.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1015,6 +1024,29 @@ object NoPointer
 /**
  * @suppress
  */
+public object FfiConverterUInt: FfiConverter<UInt, Int> {
+    override fun lift(value: Int): UInt {
+        return value.toUInt()
+    }
+
+    override fun read(buf: ByteBuffer): UInt {
+        return lift(buf.getInt())
+    }
+
+    override fun lower(value: UInt): Int {
+        return value.toInt()
+    }
+
+    override fun allocationSize(value: UInt) = 4UL
+
+    override fun write(value: UInt, buf: ByteBuffer) {
+        buf.putInt(value.toInt())
+    }
+}
+
+/**
+ * @suppress
+ */
 public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
@@ -1089,6 +1121,25 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
         val byteBuf = toUtf8(value)
         buf.putInt(byteBuf.limit())
         buf.put(byteBuf)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterByteArray: FfiConverterRustBuffer<ByteArray> {
+    override fun read(buf: ByteBuffer): ByteArray {
+        val len = buf.getInt()
+        val byteArr = ByteArray(len)
+        buf.get(byteArr)
+        return byteArr
+    }
+    override fun allocationSize(value: ByteArray): ULong {
+        return 4UL + value.size.toULong()
+    }
+    override fun write(value: ByteArray, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        buf.put(value)
     }
 }
 
@@ -1174,6 +1225,53 @@ public object FfiConverterTypeFfiError : FfiConverterRustBuffer<FfiException> {
     }
 
 }
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalByteArray: FfiConverterRustBuffer<kotlin.ByteArray?> {
+    override fun read(buf: ByteBuffer): kotlin.ByteArray? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterByteArray.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.ByteArray?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterByteArray.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.ByteArray?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterByteArray.write(value, buf)
+        }
+    }
+}
+        /**
+         * Render nền theme thành PNG (Giai đoạn 4, theme-render).
+         * Trả `None` khi nền là màu trơn hoặc ảnh (Kotlin dùng đường tô màu /
+         * ảnh nền riêng như trước). Gradient mới render thành ảnh.
+         */
+    @Throws(FfiException::class) fun `renderBackgroundPng`(`themeJson`: kotlin.String, `dark`: kotlin.Boolean, `width`: kotlin.UInt, `height`: kotlin.UInt, `radiusPx`: kotlin.UInt): kotlin.ByteArray? {
+            return FfiConverterOptionalByteArray.lift(
+    uniffiRustCallWithError(FfiException) { _status ->
+    UniffiLib.INSTANCE.uniffi_theme_ffi_fn_func_render_background_png(
+        FfiConverterString.lower(`themeJson`),FfiConverterBoolean.lower(`dark`),FfiConverterUInt.lower(`width`),FfiConverterUInt.lower(`height`),FfiConverterUInt.lower(`radiusPx`),_status)
+}
+    )
+    }
+    
+
         /**
          * Gộp một theme JSON thành theme cuối cùng (BR-24) và trả JSON.
          * `dark = true` thì gộp biến thể Tối (tự sinh từ Sáng khi thiếu, BR-16).
